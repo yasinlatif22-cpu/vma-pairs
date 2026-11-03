@@ -1,0 +1,165 @@
+
+##### pooled_stats
+(stitched independent runs; capital, positions, formation and risk-control state reset per run)
+dev                                n= 2265 ann.ret  3.58% vol  5.98% Sharpe  0.60 NW-t  2.04  boot95(21d) [ 0.07, 1.11]
+val                                n= 1259 ann.ret  1.78% vol  3.82% Sharpe  0.47 NW-t  1.07  boot95(21d) [-0.39, 1.31]
+holdout                            n=  752 ann.ret  1.26% vol  3.12% Sharpe  0.40 NW-t  0.76  boot95(21d) [-0.63, 1.47]
+val+holdout (2018-2025)            n= 2011 ann.ret  1.58% vol  3.57% Sharpe  0.44 NW-t  1.31  boot95(21d) [-0.20, 1.10]
+dev+val+holdout (dev-inclusive)    n= 4276 ann.ret  2.64% vol  5.00% Sharpe  0.53 NW-t  2.42  boot95(21d) [ 0.13, 0.91]
+
+utilisation (mean over run days):
+  dev      in-trade days 35%; while in trade: gross 1.02x, long 0.49x, short 0.53x; all days: long 0.17x, short 0.19x
+  val      in-trade days 26%; while in trade: gross 1.02x, long 0.49x, short 0.52x; all days: long 0.13x, short 0.13x
+  holdout  in-trade days 39%; while in trade: gross 1.03x, long 0.48x, short 0.55x; all days: long 0.19x, short 0.21x
+
+FINANCING (first four columns: $ per year as % of the initial $1M; excess columns: mean daily return based; rf = Fama-French daily rf; rebate spread 0.5%):
+period    trading  S1 int S2 rebate  T-bill | excess of T-bill:     S0     S1     S2 | excess Sharpe S0/S1/S2
+dev         3.98%   0.00%     0.00%   0.00% |                    3.58%  3.58%  3.58% |  0.60 /  0.60 /  0.60
+val         1.78%   1.04%     0.16%   1.39% |                    0.39%  1.43%  1.59% |  0.10 /  0.37 /  0.42
+holdout     1.23%   3.17%     0.98%   5.04% |                   -3.78% -0.61%  0.37% | -1.21 / -0.20 /  0.12
+val+holdout excess of T-bill: S0 ann -1.17%, Sharpe -0.33; S1 ann 0.67%, Sharpe 0.19; S2 ann 1.13%, Sharpe 0.32
+
+These financing lines are scenarios about a brokerage account, not trading results. Interest on cash does not by itself
+establish or refute trading skill; the benchmark question is whether trading P&L plus feasible financing beats T-bills.
+
+##### attribution (open vs close fills)
+
+=== dev: 58 matched trades (identical dates and exit reasons)
+gross_open        444735.0
+gross_close       467826.0
+diff              -23091.0
+entry_intraday     33062.0
+exit_intraday     -53627.0
+qty_term           -2526.0
+largest |diff| trades:
+     signal  side reason  gross_open  gross_close     diff  entry_intraday  exit_intraday  qty_term
+2010-05-17     1 z_stop    -11894.0      25934.0 -37827.0        -16434.0       -20167.0   -1226.0
+2011-06-24     1 target    119173.0      96314.0  22859.0          1728.0        17722.0    3409.0
+2015-11-02     1 target     22722.0        834.0  21888.0         18603.0         3194.0      92.0
+2015-01-02    -1 target      2808.0      23876.0 -21068.0         -5547.0       -14381.0   -1140.0
+2011-06-30    -1 target      6707.0      27450.0 -20743.0        -32206.0         8786.0    2676.0
+open beat close in 55% of trades; mean diff -398, t -0.27
+
+=== val: 32 matched trades (identical dates and exit reasons)
+gross_open        126341.0
+gross_close        50707.0
+diff               75634.0
+entry_intraday     42730.0
+exit_intraday      29663.0
+qty_term            3241.0
+largest |diff| trades:
+     signal  side reason  gross_open  gross_close     diff  entry_intraday  exit_intraday  qty_term
+2021-03-09     1 target     10129.0     -13586.0  23715.0           540.0        23917.0    -743.0
+2020-03-16     1 target      8245.0     -14441.0  22686.0         12596.0        10521.0    -431.0
+2019-01-28     1 z_stop    -31255.0     -10735.0 -20520.0         -4499.0       -15836.0    -185.0
+2020-03-20    -1 target     14574.0      -1581.0  16155.0         22282.0        -9203.0    3076.0
+2020-03-25     1 target     18072.0       6243.0  11829.0         14379.0        -2578.0      28.0
+March-2020 signals: 3 trades, diff 50,670; other 29 trades, diff 24,964 (mean 861, t 0.59)
+open beat close in 59% of trades; mean diff 2,364, t 1.49
+
+##### concentration
+
+== dev: 58 trades, net 357,560, mean 6,165, 95% CI of mean [-246, 13,224]; largest winner = 16% of gross wins, top-3 winners = 32%
+   excluding top-1 winners      n= 57 net    239,681  mean    4,205
+   excluding top-1 losers       n= 57 net    416,169  mean    7,301
+   excluding top-1 by |P&L|     n= 57 net    239,681  mean    4,205
+   excluding top-3 winners      n= 55 net    125,728  mean    2,286
+   excluding top-3 losers       n= 55 net    510,686  mean    9,285
+   excluding top-3 by |P&L|     n= 55 net    237,881  mean    4,325
+
+== val: 32 trades, net 88,874, mean 2,777, 95% CI of mean [-1,984, 7,195]; largest winner = 9% of gross wins, top-3 winners = 26%
+   excluding top-1 winners      n= 31 net     68,072  mean    2,196
+   excluding top-1 losers       n= 31 net    121,164  mean    3,909
+   excluding top-1 by |P&L|     n= 31 net    121,164  mean    3,909
+   excluding top-3 winners      n= 29 net     29,551  mean    1,019
+   excluding top-3 losers       n= 29 net    167,980  mean    5,792
+   excluding top-3 by |P&L|     n= 29 net    167,980  mean    5,792
+
+== holdout: 17 trades, net 36,754, mean 2,162, 95% CI of mean [-2,545, 6,859]; largest winner = 25% of gross wins, top-3 winners = 53%
+   excluding top-1 winners      n= 16 net     14,241  mean      890
+   excluding top-1 losers       n= 16 net     53,723  mean    3,358
+   excluding top-1 by |P&L|     n= 16 net     14,241  mean      890
+   excluding top-3 winners      n= 14 net    -10,549  mean     -754
+   excluding top-3 losers       n= 14 net     79,162  mean    5,654
+   excluding top-3 by |P&L|     n= 14 net     45,995  mean    3,285
+
+== all: 107 trades, net 483,188, mean 4,516, 95% CI of mean [619, 8,647]; largest winner = 11% of gross wins, top-3 winners = 22%
+   excluding top-1 winners      n=106 net    365,309  mean    3,446
+   excluding top-1 losers       n=106 net    541,797  mean    5,111
+   excluding top-1 by |P&L|     n=106 net    365,309  mean    3,446
+   excluding top-3 winners      n=104 net    251,356  mean    2,417
+   excluding top-3 losers       n=104 net    636,314  mean    6,118
+   excluding top-3 by |P&L|     n=104 net    363,509  mean    3,495
+
+##### independent trade audit
+
+--- long V / short MA: signal 2009-10-23 entry 2009-10-26 exit 2009-10-28 side 1 target (2 sessions / 2 calendar days)
+  gross     independent    17,071.57  engine    17,071.57  diff    0.0000
+  dividends independent         0.00  engine         0.00  diff    0.0000
+  costs     independent       982.86  engine       982.86  diff    0.0000
+  borrow    independent         7.17  engine         7.17  diff    0.0000
+  net       independent    16,081.54  engine    16,081.54  diff    0.0000
+
+--- short V / long MA: signal 2009-04-28 entry 2009-04-29 exit 2009-05-15 side -1 max_hold (12 sessions / 16 calendar days)
+  gross     independent   -19,460.72  engine   -19,460.72  diff    0.0000
+  dividends independent    -1,025.03  engine    -1,025.03  diff   -0.0000
+  costs     independent     1,015.26  engine     1,015.26  diff   -0.0000
+  borrow    independent        84.75  engine        84.75  diff    0.0000
+  net       independent   -21,585.75  engine   -21,585.75  diff    0.0000
+
+--- spans MA 10-for-1 split (2014-01-22): signal 2014-01-15 entry 2014-01-16 exit 2014-03-14 side -1 max_hold (39 sessions / 57 calendar days)
+  gross     independent   -28,151.13  engine   -28,151.13  diff   -0.0000
+  dividends independent    -1,501.06  engine    -1,501.06  diff   -0.0000
+  costs     independent     1,335.91  engine     1,335.91  diff    0.0000
+  borrow    independent       393.25  engine       393.25  diff    0.0000
+  net       independent   -31,381.35  engine   -31,381.35  diff   -0.0000
+
+--- largest |dividends|: signal 2014-04-08 entry 2014-04-09 exit 2014-05-14 side 1 target (24 sessions / 35 calendar days)
+  gross     independent     6,962.80  engine     6,962.80  diff   -0.0000
+  dividends independent     1,595.23  engine     1,595.23  diff    0.0000
+  costs     independent     1,351.17  engine     1,351.17  diff   -0.0000
+  borrow    independent       149.56  engine       149.56  diff    0.0000
+  net       independent     7,057.29  engine     7,057.29  diff   -0.0000
+
+--- window-boundary exit: signal 2010-09-13 entry 2010-09-14 exit 2010-09-17 side 1 window_end (3 sessions / 3 calendar days)
+  gross     independent   -22,548.07  engine   -22,548.07  diff    0.0000
+  dividends independent         0.00  engine         0.00  diff    0.0000
+  costs     independent     1,206.34  engine     1,206.34  diff    0.0000
+  borrow    independent        14.58  engine        14.58  diff    0.0000
+  net       independent   -23,768.99  engine   -23,768.99  diff    0.0000
+
+--- end-of-data liquidation: signal 2017-12-27 entry 2017-12-28 exit 2017-12-29 side -1 end_of_data (1 sessions / 1 calendar days)
+  gross     independent      -232.09  engine      -232.09  diff   -0.0000
+  dividends independent         0.00  engine         0.00  diff    0.0000
+  costs     independent     1,357.23  engine     1,357.23  diff    0.0000
+  borrow    independent         6.08  engine         6.08  diff    0.0000
+  net       independent    -1,595.40  engine    -1,595.40  diff   -0.0000
+
+largest absolute difference across audited trades: 0.0000
+
+##### earnings diagnostic (exploratory)
+report dates per ticker:
+         count        min        max
+ticker                             
+MA         78 2007-08-01 2026-10-29
+V          77 2008-02-25 2026-10-27 
+missing rdq: 1
+
+TRADES (exposed = any day entry..exit is an earnings day for V or MA)
+  period  exposed  n  mean_net  median_net  win  z_stop     total
+    dev    False 31   9973.97     8798.72 0.81    0.03 309192.97
+    dev     True 27   1791.38     5252.82 0.59    0.00  48367.34
+holdout    False 10   1955.82     4318.17 0.60    0.00  19558.24
+holdout     True  7   2456.55      339.93 0.57    0.00  17195.87
+    val    False 16   6564.55     6713.06 0.88    0.00 105032.76
+    val     True 16  -1009.93     5715.01 0.56    0.25 -16158.83
+    all    False 57   7610.24     7281.03 0.79    0.02 433783.96
+    all     True 50    988.09     5173.56 0.58    0.08  49404.38
+
+all periods: mean(exposed)-mean(unexposed) = -6,622  bootstrap 95% [-14,717, 1,062]  n=50 vs 57
+
+IN-TRADE DAYS ($ daily P&L)
+           n   mean     std
+exp                       
+False  1318  469.2  6007.1
+True     98 -955.8  9056.2

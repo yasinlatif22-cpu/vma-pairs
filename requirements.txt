@@ -1,8 +1,7 @@
-numpy
-pandas
-scipy
-statsmodels
-matplotlib
-pytest
-wrds
-pyarrow
+# Versions the test suite and all reported results were run with (Python 3.10). Newer versions probably work; these are tested.
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.15.3
+statsmodels==0.15.0
+matplotlib==3.10.9
+pytest==9.2.0

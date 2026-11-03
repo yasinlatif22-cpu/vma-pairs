@@ -1,36 +1,47 @@
-# Independent accounting audit (2026-11-03)
+# Independent accounting audit and data verification
 
-**Method.** `diagnostics/trade_audit.py` recomputes selected trades from raw CRSP fields (unadjusted price, open,
-`cfacpr`, `ret`, `retx`) in actual share counts, without using `market.csv` or the engine. It converts the engine's
-split-adjusted quantity to actual shares (adjusted quantity / cfacpr), books gross P&L at raw prices, derives the
-cash distribution per share as (ret - retx) x prior raw close, pays it to shares held at the start of each day after
-entry, and re-derives costs (5 bps per fill) and borrow (30 bps/yr per calendar night on short value).
+**Two different things are verified, and only the first is complete.**
+1. *Internal arithmetic* (done): the engine's ledger agrees with separately written code reading the same CRSP extract.
+2. *Source data* (partly done, and partly pending your WRDS pulls): whether the CRSP fields mean what the code assumes and
+   whether inferred distributions match independent distribution records.
 
-**Trades checked (all in the dev run, primary open-fill):**
-| signal date | type | what it exercises |
-|---|---|---|
-| 2009-10-23 | long V / short MA, target, 2 days | basic long/short, no dividend |
-| 2009-04-28 | short V / long MA, max-hold, 16 days | short leg, dividend charged on short |
-| 2014-01-15 | short V / long MA, max-hold, 57 days | spans MA's 10-for-1 split (2014-01-22) and dividends |
-| 2010-09-13 | long V / short MA, window-end exit | forced window-end liquidation |
-| 2013-10-31 | long V / short MA, window-end, 47 days | long-leg dividends |
+## 1. Arithmetic verification (`diagnostics/trade_audit.py`)
+Does not import the engine or data helpers. Works in actual share counts and raw prices: actual shares = adjusted shares /
+`cfacpr`; gross P&L at raw prices; distributions = (ret - retx) x prior raw close, paid to shares held at the start of each
+day after entry; costs 5 bps per fill; borrow 30 bps/yr per calendar night on short value at each close held, none after the exit.
+Selection rule (stated, not cherry-picked): first long-V trade, first short-V trade, a trade spanning each split if one
+exists, the largest-|dividend| trade, the first window-boundary exit, and the end-of-data liquidation.
 
-**Result.** Gross, dividends, costs, borrow and net P&L match the engine to the cent in all five (differences below
-$0.01); see `results/diagnostics/trade_audit.txt` (local). Reconciliation of trade P&L to equity is also zero in every run.
+| case | signal | exit | what it exercises |
+|---|---|---|---|
+| long V / short MA | 2009-10-23 | target | basic long/short |
+| short V / long MA | 2009-04-28 | max-hold | short leg with dividend charged on the short |
+| spans MA 10-for-1 split | 2014-01-15 | max-hold | split-adjusted quantities across 2014-01-22 |
+| largest |dividends| | 2014-04-08 | target | dividend-spanning long position |
+| window-boundary exit | 2010-09-13 | window_end | exit filled in the next window |
+| end-of-data liquidation | 2017-12-27 | end_of_data | final-close liquidation, no extra borrow night |
+Result: gross, dividends, costs, borrow and net match the engine to under $0.0001 in all six (output in
+`public_results/diagnostics_output.txt`). No trade spans V's 2015-03-19 split, so that split is checked only through the data
+checks below. Before the fix in `CORRECTIONS.md` item 1, the end-of-data trade disagreed by the one extra borrow night
+($6.06); the audit is what exposes that class of error.
 
-**What this does and does not establish.** It confirms arithmetic, split handling (cumulative-factor logic checked
-across a real 10-for-1 split), share-count conversion, dividend timing and the fill/exit conventions, with code
-written separately from the engine. It does not independently verify the CRSP data itself: both implementations read
-the same file.
+## 2. Data checks (`diagnostics/verify_data.py`)
+Run now, on the files as pulled: no duplicate or non-weekday dates; positive prices; no missing price, open or factor; returns
+missing only on V's first listing day (2008-03-19); after V's listing both securities have identical date sets; gaps
+between observations are at most a holiday weekend; `cfacpr` changes only on the two splits (MA 10-for-1 on 2014-01-22,
+V 4-for-1 on 2015-03-19); adjusted overnight gaps above 10% fall on known market dates (2008-10-24, 2015-08-24, 2020-03-16,
+2020-11-09). No negative (bid/ask-average) prices appear in the extract.
 
-**CRSP field checks (from the local file).**
-- `cfacpr` changes exactly on the two known splits (MA 2014-01-22, V 2015-03-19; V 4-for-1 from the factor of 4,
-  MA 10-for-1 from the factor of 10). No other factor changes.
-- Largest adjusted overnight gaps (V/MA): 2020-03-16 (+15%/+14%), 2008-10-24, 2015-08-24 (index-wide flash-crash open):
-  these are known market events, so the open prices are not obviously corrupt. No missing opens in V or MA.
-- Derived distributions: 70 (V) and 72 (MA) events, quarterly spacing 84-99 days. Spot values look right (V $0.105 in
-  2008, $0.59 in May 2025, $0.67 in Nov 2025; MA $0.15 in 2008, $0.76 in 2025). **These are from my knowledge of public
-  declarations and have not been checked against a fetched source**; a one-time check against a dividend history page
-  or Compustat `comp.sec_dprc`/dividend fields would close that.
-- Not verified externally: that CRSP `dlyopen` is the official opening-auction print rather than a first-trade
-  or quote-based value. No independent open-price source was reachable from this environment.
+## 3. What is not yet verified
+- **Field definitions.** Official CIZ definitions (DlyOpen, DlyPrc, DlyRet, DlyRetx, DlyCumFacPr and the price flag) were not
+  retrievable from a source I could reach from this environment. The code assumes: `dlyopen` is the day's opening price;
+  `dlyprc` is the closing price (bid/ask average only when `dlyprcflg` says so); `dlyret` includes distributions and
+  `dlyretx` excludes them; `dlycumfacpr` divides raw prices into split-adjusted ones. The CIZ table also carries `dlyclose`,
+  `dlyorddivamt`, `dlynonorddivamt`, `dlyfacprc` and `dlyhigh/dlylow`, which `extract_aux.py` pulls so these assumptions can be
+  tested against the file itself; the database catalogue comments are pulled to `data/raw/field_definitions.csv` for review.
+- **Distributions.** Inferred amounts look right on inspection (e.g. V $0.105 per share in 2008, MA $0.15), but that is my
+  recollection, not a sourced check. `verify_data.py` compares them with the file's own distribution amounts, and
+  `crsp_distributions.csv` supplies CRSP distribution events; both need `extract_aux.py` to be run (pending).
+- **Opening prices.** Whether `dlyopen` is the exchange opening-auction print is not verified. After the pull the script checks
+  that each open lies inside the day's [low, high], which is a range check, not a source comparison.
+- **Both implementations read the same CRSP extract**, so neither can catch an error in that extract.

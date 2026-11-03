@@ -13,7 +13,20 @@ then fixed until exit, so exposures drift with prices (reported daily as gross %
 
 ## Execution
 Signal at the close of day t; order fills at the open of t+1 (`fill=open_next`) or the close of t+1 (`close_next`,
-used if opens are unavailable or as a delay sensitivity). Gap risk is real: stops are evaluated at closes and fill
+used if opens are unavailable or as a delay sensitivity). A missing price on a fill date stops the run with an error: an order
+is never cancelled, retried or dropped silently.
+
+**Window boundaries and "flat at window end".** The signal state machine sets the target to flat at the last close of each
+63-session window and issues an exit order then. That order fills at the next session's open (or close), which is the first
+session of the following window. A position therefore carries across the boundary for one overnight gap, and borrow is
+charged for that night. The next window's hedge ratio does not govern the exiting order. Tested in
+`tests/test_engine_conventions.py`; the historical results were produced under this convention and nothing about it changed.
+
+**Final date.** Any position open at the last date is liquidated at the final close, with costs and no borrow charge for a night
+that does not occur; the final row is flat (holdings, exposures, `in_trade`, equity equals cash).
+
+**Holding periods.** Maximum holding periods are counted in sessions (closes held after the entry fill). Trade records carry both
+`hold_sessions` (sessions from entry fill to exit fill) and `hold_calendar_days`. Gap risk is real: stops are evaluated at closes and fill
 at the next open, so the realised loss can exceed the limit (the test suite includes such a gap; every trade records
 its realised P&L).
 
@@ -29,7 +42,8 @@ Daily loop: dividends to holders at the start of the day (ex-date buyers get non
 then fills, then close-of-day marking and borrow, then risk checks, then orders for tomorrow.
 Each trade records entry/exit signal and fill dates, prices, quantities, exit reason, gross P&L, dividends,
 costs, borrow and net P&L. `reconcile()` checks that the sum of trade P&L equals the change in equity (no cash
-interest is modelled, so it should be zero; it is printed on every run).
+interest is modelled, so it should be zero) and raises `ReconciliationError` beyond $0.01, so a run with a material
+discrepancy fails rather than printing a number.
 
 | input | status |
 |---|---|
@@ -41,7 +55,7 @@ interest is modelled, so it should be zero; it is printed on every run).
 
 ## Data conventions
 Split-adjusted, not dividend-adjusted, prices; dividends are explicit cash flows. Dates where either name lacks a
-close are dropped (log printed by `ingest.py`); nothing is forward-filled; missing opens skip that fill.
+close are dropped (log printed by `ingest.py`); nothing is forward-filled; a missing open that an order needs raises an error.
 Both names trade through the whole sample after Visa's March 2008 listing, so no delisting handling is needed
 here; it would be required for a broader universe.
 
@@ -61,6 +75,10 @@ here; it would be required for a broader universe.
   trials are correlated, so N overstates the independent count (a lenient adjustment). It is not the probability that
   the strategy "works".
 - Volatility regimes: cut-offs are expanding quantiles of past market volatility, so labels use only past data.
+
+**Reproductions.** After an engine correction the evaluated periods were re-run into `results_rerun/` with
+`run_study.py --reproduce`. Reproductions are labelled as such in `EXPERIMENTS.md`, never overwrite the original results, and
+the holdout reproduction does not create a new holdout.
 
 ## Not implemented (deliberately, until the baseline is trusted)
 Multi-pair universes, ticker-level aggregation and exposure caps, random-pair and matched-filter placebos, and

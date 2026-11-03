@@ -3,6 +3,14 @@
 Per day: (1) dividends to holders at the start of the day, (2) fill the order created at
 yesterday's close, (3) mark at close and charge overnight borrow, (4) check risk limits,
 (5) create tomorrow's order from today's signal. Share counts only change on fills.
+
+Conventions (tested):
+  * Orders created at a close fill at the NEXT session's open or close (spec.fill). This includes the order that
+    exits at a window end: a position is flat after the first session of the next window, not at the window's last
+    close. Borrow is charged for every night a short is held, including that one.
+  * A missing price on a fill date raises ValueError; an order is never dropped silently.
+  * At the final date any open position is liquidated at the final close with costs, and no borrow is charged for a
+    night that does not occur. The final row is then flat (holdings, exposures, in_trade) and equity equals cash.
 """
 import numpy as np
 import pandas as pd
@@ -22,7 +30,7 @@ def run_engine(px_open, px_close, div, sig, spec):
     prev_target, locked_window, halted_until = 0, None, -1
     trades, rows = [], []
 
-    def fill(px, kind, reason, side=0, beta=np.nan, sig_date=None, d=None):
+    def fill(px, kind, reason, side=0, beta=np.nan, sig_date=None, d=None, i=None):
         nonlocal cash, cur
         cost = 0.0
         if kind == "exit":
@@ -37,7 +45,7 @@ def run_engine(px_open, px_close, div, sig, spec):
                 entry_px_y=cur["entry_px"][names[0]], entry_px_x=cur["entry_px"][names[1]],
                 qty_y=sh[names[0]], qty_x=sh[names[1]], exit_signal_date=cur["exit_sig_date"], exit_date=d,
                 exit_px_y=px[names[0]], exit_px_x=px[names[1]], exit_reason=reason,
-                hold_days=(d - cur["entry_date"]).days, gross_pnl=gross, dividends=cur["div"],
+                hold_sessions=i - cur["entry_i"], hold_calendar_days=(d - cur["entry_date"]).days, gross_pnl=gross, dividends=cur["div"],
                 costs=cur["cost"] + cost, borrow=cur["borrow"], net_pnl=net, equity_basis=cur["equity"]))
             for t in names:
                 sh[t] = 0.0
@@ -50,7 +58,7 @@ def run_engine(px_open, px_close, div, sig, spec):
                 cost += bps * abs(q[t]) * px[t]
                 sh[t] = q[t]
             cash -= cost
-            cur = dict(side=side, beta=beta, sig_date=sig_date, entry_date=d, entry_px=dict(px), div=0.0,
+            cur = dict(side=side, beta=beta, sig_date=sig_date, entry_date=d, entry_i=i, entry_px=dict(px), div=0.0,
                        cost=cost, borrow=0.0, equity=equity_prev, exit_sig_date=None)
 
     for i, d in enumerate(dates):
@@ -62,16 +70,20 @@ def run_engine(px_open, px_close, div, sig, spec):
         if pending:
             p, pending = pending, None
             px = o if spec.fill == "open_next" else c
-            if px.notna().all():
-                if p["kind"] == "exit" and cur:
-                    cur["exit_sig_date"] = p["sig_date"]
-                    fill(px, "exit", p["reason"], d=d)
-                elif p["kind"] == "entry" and not cur:
-                    fill(px, "entry", "entry", p["side"], p["beta"], p["sig_date"], d)
+            if px.isna().any():
+                raise ValueError(f"missing {'open' if spec.fill == 'open_next' else 'close'} price on {d.date()} for pending {p['kind']} order "
+                                 f"(signal {p['sig_date'].date()}); fix the data rather than skipping the order")
+            if p["kind"] == "exit" and cur:
+                cur["exit_sig_date"] = p["sig_date"]
+                fill(px, "exit", p["reason"], d=d, i=i)
+            elif p["kind"] == "entry" and not cur:
+                fill(px, "entry", "entry", p["side"], p["beta"], p["sig_date"], d, i)
+            else:
+                raise RuntimeError(f"order/position state mismatch on {d.date()}: {p['kind']} with cur={cur is not None}")
         # mark at close; borrow is charged for the night(s) until the next session
         mv = {t: sh[t] * c[t] for t in names}
         short_mv = -sum(v for v in mv.values() if v < 0)
-        nights = (dates[i + 1] - d).days if i + 1 < n else 1
+        nights = (dates[i + 1] - d).days if i + 1 < n else 0     # no night follows the final close
         borrow = short_mv * borrow_rate * nights / 365
         cash -= borrow
         if cur:
@@ -108,8 +120,8 @@ def run_engine(px_open, px_close, div, sig, spec):
 
     if cur:                                                          # mark-out at the final close
         cur["exit_sig_date"] = dates[-1]
-        fill(px_close.iloc[-1], "exit", "end_of_data", d=dates[-1])
-        rows[-1]["equity"] = cash
+        fill(px_close.iloc[-1], "exit", "end_of_data", d=dates[-1], i=n - 1)
+        rows[-1].update(equity=cash, long_mv=0.0, short_mv=0.0, mv_y=0.0, mv_x=0.0, in_trade=0)
     daily = pd.DataFrame(rows).set_index("date")
     daily["ret"] = daily.equity.pct_change().fillna(daily.equity.iloc[0] / spec.initial_equity - 1)
     daily["gross_pct"] = (daily.long_mv - daily.short_mv) / daily.equity
@@ -117,7 +129,14 @@ def run_engine(px_open, px_close, div, sig, spec):
     return daily, pd.DataFrame(trades)
 
 
-def reconcile(daily, trades, spec):
-    """Trade-level net P&L must equal the change in portfolio equity (no cash interest modelled)."""
-    return float(daily.equity.iloc[-1] - spec.initial_equity - trades.net_pnl.sum()) if len(trades) else \
-        float(daily.equity.iloc[-1] - spec.initial_equity)
+class ReconciliationError(AssertionError):
+    pass
+
+
+def reconcile(daily, trades, spec, tol=0.01):
+    """Trade-level net P&L must equal the change in portfolio equity (no cash interest is modelled).
+    Returns the difference in dollars; raises ReconciliationError if it exceeds `tol` dollars (float noise is ~1e-8)."""
+    err = float(daily.equity.iloc[-1] - spec.initial_equity - (trades.net_pnl.sum() if len(trades) else 0.0))
+    if abs(err) > tol:
+        raise ReconciliationError(f"trade P&L does not reconcile to equity: difference {err:,.4f} (tolerance {tol})")
+    return err

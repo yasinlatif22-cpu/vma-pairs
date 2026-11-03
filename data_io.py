@@ -20,7 +20,7 @@ def from_crsp(raw):
 
 def load_market(path, tickers, start=None, end=None):
     """Wide open/close/div frames on the dates where BOTH tickers have a close. Dates with a missing open
-    keep the row (the engine skips fills on missing prices); nothing is forward-filled."""
+    keep the row; the engine raises if an order must fill at a missing price. Nothing is forward-filled."""
     df = pd.read_csv(path, parse_dates=["date"])
     df = df[df.ticker.isin(tickers)]
     wide = {k: df.pivot(index="date", columns="ticker", values=k)[list(tickers)] for k in ("open", "close", "div")}

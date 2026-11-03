@@ -1,0 +1,3 @@
+# Only needed to run the WRDS extraction scripts (requires your own licensed WRDS account).
+-r requirements.txt
+wrds==3.5.0

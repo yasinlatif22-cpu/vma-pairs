@@ -21,7 +21,7 @@ substitutes. Most one-off earnings or news dislocations should be temporary.
 
 **What the study can and cannot show.** It tests whether the spread's statistical behaviour was tradable net of
 costs in the sample. It cannot prove why. Case studies list what was observable at the decision time (z, fit, half-life,
-earnings dates if supplied); any explanation written afterwards is a hypothesis.
+Compustat report dates inside the holding window); any explanation written afterwards is a hypothesis.
 
 **Events to annotate in case studies** (verify dates and facts): earnings releases of each company, antitrust or
 interchange actions against either network, the 2022 Russia suspension, and any merger attempts. For each loser,
