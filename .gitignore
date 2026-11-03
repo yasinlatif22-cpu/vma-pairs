@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+results/
+.venv/
+.DS_Store
+.pgpass
+*.env
+__pycache__/
+.pytest_cache/
+.DS_Store
