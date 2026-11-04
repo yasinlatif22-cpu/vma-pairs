@@ -21,7 +21,13 @@ execution timing, costs, borrow and dividends?
 print with no impact model; assumed costs and borrow; every 2009-2025 year has now been examined, so none is untouched.
 
 ### Results at a glance
-Strategy-level results only (no security prices). All three are reproductions with the corrected engine; the holdout is spent.
+The first chart uses rebased V and MA price series from licensed CRSP data; the rest are strategy-level results only. All are reproductions with the corrected engine; the holdout is spent.
+
+![Visa and Mastercard rebased, with the spread z-score and trades](docs/img/pair_deviation.png)
+*Top: the two stocks rebased to 100 at the start of the validation period; shading marks when a position was held. Bottom: the
+60-day z-score of the hedged log-price spread, which is the deviation the strategy trades. It enters when |z| is between 2 and
+4, exits near 0.5, and stops out at 4. The fitted hedge ratio is re-estimated every 63 sessions, which is why the z-score
+can jump at window boundaries.*
 
 ![Equity versus T-bills and drawdown](docs/img/equity_drawdown.png)
 *Total-equity return (cash earns nothing in the strategy's account) against T-bills on the same $1M. The strategy's lead comes

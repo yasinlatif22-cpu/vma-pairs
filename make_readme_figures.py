@@ -11,6 +11,10 @@ import matplotlib.ticker as mt
 import numpy as np
 import pandas as pd
 
+from config import DEFAULT
+from data_io import load_market
+from signals import build_signals
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
@@ -28,7 +32,7 @@ usdk = mt.FuncFormatter(lambda v, _: f"{'-' if v < 0 else ''}${abs(v) / 1000:,.0
 def load(res, p, fill="open_next"):
     d = Path(res) / f"{p}_none_{fill}"
     daily = pd.read_csv(d / "daily.csv", parse_dates=["date"], index_col="date")
-    tr = pd.read_csv(d / "trades.csv", parse_dates=["signal_date", "entry_date", "exit_date"])
+    tr = pd.read_csv(d / "trades.csv", parse_dates=["signal_date", "entry_date", "exit_signal_date", "exit_date"])
     tr["period"] = p
     return daily, tr
 
@@ -107,6 +111,40 @@ def pnl(res, out):
     plt.close(fig)
 
 
+def pair(res, out, period="val"):
+    a, b = getattr(DEFAULT, period)
+    _, c, _ = load_market("data/processed/market.csv", [DEFAULT.y, DEFAULT.x])
+    sig, _ = build_signals(c.loc[:b], DEFAULT, c.index.searchsorted(pd.Timestamp(a)))
+    z = sig.loc[a:b, "z"]
+    w = c.loc[a:b] / c.loc[a:b].iloc[0] * 100
+    _, t = load(res, period)
+    fig, (p1, p2) = plt.subplots(2, 1, figsize=(11, 6.4), sharex=True, gridspec_kw={"height_ratios": [1.2, 1]})
+    p1.plot(w.index, w[DEFAULT.y], color=CYAN, lw=1.3, label="Visa (V)")
+    p1.plot(w.index, w[DEFAULT.x], color="#d96bff", lw=1.3, label="Mastercard (MA)")
+    for _, r in t.iterrows():
+        p1.axvspan(r.entry_date, r.exit_date, color=GREEN if r.net_pnl > 0 else RED, alpha=0.16, lw=0)
+    p1.set_ylabel("rebased to 100")
+    p1.legend(loc="upper left", facecolor=BG, edgecolor="#333", fontsize=8)
+    p1.set_title(f"THE PAIR AND ITS DEVIATION, VALIDATION {a[:4]}-{b[:4]}. Shading = position held (green won, red lost, net of costs)")
+    p2.plot(z.index, z, color=GREY, lw=0.9)
+    for y, col, ls in [(2, AMBER, "--"), (-2, AMBER, "--"), (4, RED, ":"), (-4, RED, ":"), (0, "#666", "-")]:
+        p2.axhline(y, color=col, lw=0.8, ls=ls)
+    for _, r in t.iterrows():
+        p2.scatter(r.signal_date, z.get(r.signal_date, np.nan), marker="^" if r.side == 1 else "v", color=CYAN, s=26, zorder=3)
+        p2.scatter(r.exit_signal_date, z.get(r.exit_signal_date, np.nan), marker="o", s=22, zorder=3, edgecolor="#000", lw=0.4,
+                   color=REASON.get(r.exit_reason, GREY))
+    p2.set_ylim(-6.6, 5.2)
+    p2.set_ylabel("spread z-score (60-day)")
+    p2.text(z.index[2], 4.3, "entry at |z| 2 to 4; stop at 4", color=AMBER, fontsize=8)
+    from matplotlib.lines import Line2D
+    p2.legend(handles=[Line2D([], [], marker="^", color=CYAN, ls="", label="enter long V / short MA"), Line2D([], [], marker="v", color=CYAN, ls="", label="enter short V / long MA")] +
+              [Line2D([], [], marker="o", color=col, ls="", markeredgecolor="#000", label=f"exit: {k}") for k, col in (("target", GREEN), ("z_stop", RED), ("max_hold", AMBER))],
+              loc="lower left", ncol=5, fontsize=7, facecolor=BG, edgecolor="#333")
+    fig.tight_layout()
+    fig.savefig(out / "pair_deviation.png", dpi=150)
+    plt.close(fig)
+
+
 def main(res="results_rerun"):
     out = Path("docs/img")
     out.mkdir(parents=True, exist_ok=True)
@@ -114,6 +152,7 @@ def main(res="results_rerun"):
     equity(res, out, rf)
     fills(res, out)
     pnl(res, out)
+    pair(res, out)
     print("wrote", sorted(p.name for p in out.glob("*.png")))
 
 
