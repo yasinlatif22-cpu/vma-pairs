@@ -65,6 +65,7 @@ not make it fresh):
 for r in "dev --gate none --fill open_next" "dev --gate coint --fill open_next" "dev --gate none --fill close_next" \
          "val --gate none --fill open_next" "val --gate coint --fill open_next" "val --gate none --fill close_next" \
          "holdout --gate none --fill open_next"; do python run_study.py --period $r --reproduce --out results_rerun; done
+python make_figures.py results_rerun                 # spread/z-score, case-study and trade-P&L figures into figures/ (local only)
 python make_public_results.py results_rerun            # tables, diagnostics output and figures into public_results/ (local only, git-ignored)
 python diagnostics/attribution.py results_rerun        # open-vs-close attribution (also: pooled_stats, concentration,
 python diagnostics/trade_audit.py results_rerun        #  earnings_analysis, case_valuation, compare_runs, provenance)
