@@ -5,9 +5,9 @@ P&L in the primary (open-fill) run. The holdout trade is described after the hol
 test. Facts carry a source. **Decision-time facts** are separated from **later information**. Durations are labelled sessions
 (trading days) or calendar days. Price figures come from the local CRSP file; "market" is the CRSP value-weighted index
 (series ends 2024-12-31). Report dates are Compustat `rdq`, matching the sources cited.
-Relative valuation at entry (trailing P/E, growth, margin, point-in-time) is produced by `diagnostics/case_valuation.py` from
-Compustat fields that `extract_aux.py` now pulls; **it has not been run yet** (pending your WRDS pull), so no valuation
-numbers are quoted below.
+Relative valuation at entry (trailing P/E, sales growth, operating margin) comes from `diagnostics/case_valuation.py`: Compustat
+quarters whose report date was on or before the signal date (point-in-time), trailing-four-quarter diluted EPS, P/E at the
+signal-date close. Trailing P/E is a crude lens for these two companies; it is a description, not a valuation model.
 
 ## 1. Largest validation loser, deepened: long V / short MA, signal 2019-01-28, net -$32.3k (z-stop)
 
@@ -16,11 +16,18 @@ numbers are quoted below.
   maximum hold 34 sessions. On 2019-01-28 V fell 1.9% and MA 1.4%, leaving V cheap relative to the 60-day spread mean.
 - Both companies reported inside the holding window: Visa fiscal Q1 on 2019-01-30, Mastercard Q4 on 2019-01-31 (Compustat
   report dates). I did not verify that those dates were publicly announced by 2019-01-28; companies normally pre-announce them.
-- Relative valuation and the two businesses' operating differences at that date: pending (see header). I will not infer them.
+- Relative valuation (Compustat, quarters reported by 2019-01-28; V last reported 2018-10-24, MA 2018-10-30): V trailing P/E 30.8
+  vs MA 40.5 (ratio 0.76), with V close $135.99 and MA $200.16. Trailing sales growth was 12.3% for V and 21.1% for MA;
+  operating margin 66.7% vs 56.1%. So V was cheaper on earnings but also the slower grower, and the more profitable by margin.
+  Caution: MA's trailing EPS includes a December-2017 quarter of $0.21 against $1.41-1.82 in the other three, which depresses
+  its EPS and inflates its P/E. I have not sourced the cause of that quarter (a one-off charge is likely but unverified here).
+  The ratio's position against its own three-year history (17th percentile of 151 sampled days; median 1.10) is distorted by
+  the same quarter and I do not rely on it.
 
 **Why convergence was plausible, and where the thesis was weak.** Plausible: both are card networks selling the same service into
 the same consumer and merchant demand, so a relative move of several points over days usually needs a company-specific cause.
-Weak: the entry sat directly in front of both companies' earnings releases, the one setting where company-specific
+Valuation did not rescue it: V's discount to MA was matched by slower growth (12% vs 21% sales), which is a reason for a
+discount, not evidence of mispricing. Weak: the entry sat directly in front of both companies' earnings releases, the one setting where company-specific
 information arrives; and the cointegration evidence for the fitted hedge was absent (p = 0.19). A defensible fundamental
 thesis would have had to say why V, not MA, was mispriced into those reports. The statistical signal alone did not.
 
@@ -39,7 +46,7 @@ thesis would have had to say why V, not MA, was mispriced into those reports. Th
 long/short structure offsets market moves, so the loss is the relative move: about 6.2 points between the legs, not market
 direction. How much of that gap was fundamental: Visa's guidance-style commentary is a plausible partial cause of V
 lagging, but Mastercard's in-line quarter does not by itself explain a +3.5% day; the available evidence does not
-explain the full size of the move, and I do not assign it. Valuation effect: not assessed (pending).
+explain the full size of the move, and I do not assign it. Valuation effect: none shown; the cheaper-looking name was the slower grower, and the move occurred on earnings.
 
 **A specific invalidating condition (observable).** If, before the planned exit, a company-specific growth warning or
 guidance change for either name is published (as Visa's CFO commentary on 2019-01-30 was), or a report-day move takes the
@@ -52,6 +59,9 @@ condition, and none was added to the strategy.
 V fell 6.2% and MA 2.9%. The Wall Street Journal reported that the Justice Department was examining whether Visa's debit
 practices amount to unlawful market dominance
 ([XTB summary of the report](https://www.xtb.com/int/market-analysis/news-and-research/us-justice-department-probing-visa-over-debit-card-practices)).
+Valuation (Compustat, quarters reported by 2021-03-19): V trailing P/E 42.7 vs MA 55.9 (ratio 0.77; 20th percentile of
+152 sampled days against a three-year median of 0.80); trailing sales growth -8.7% vs -9.4% (pandemic year for both),
+operating margin 64.9% vs 53.3%. Similar growth and a ratio close to its norm: the price drop did not rest on a valuation gap.
 The model read the V-specific drop as a spread deviation and bought V against MA. No earnings dates fall in the window
 (Visa reported 2021-04-27, Mastercard 2021-04-29, both after the 2021-04-05 exit; Compustat).
 **Later information.** The Justice Department sued Visa over debit practices on 2024-09-24
@@ -65,7 +75,9 @@ with news that became a real legal case three years later. The same rule would h
 ## 3. Worst holdout trade: short V / long MA, signal 2024-11-06, net -$17.0k (max-hold)
 **Decision-time facts.** Hedge ratio 0.71, half-life 12.7 sessions, Engle-Granger p = 0.26, max hold 38 sessions. 2024-11-06 was a
 market-wide rally (+2.6%); V rose 4.8% and MA 3.1%, so V outperformed by 1.7 points and the model shorted V at the 2024-11-07
-open. The Justice Department's debit suit against Visa (filed 2024-09-24, source above) was already public. Neither company
+open. Valuation (Compustat, quarters reported by 2024-11-06): V trailing P/E 31.6 vs MA 39.4 (ratio 0.80; 13th percentile of 151
+sampled days against a three-year median of 0.86); trailing sales growth 10.0% vs 11.7%; operating margin 67.3% vs 58.5%. The
+Justice Department's debit suit against Visa (filed 2024-09-24, source above) was already public. Neither company
 reported inside the window: Visa and Mastercard reported on 2024-10-29 and 2024-10-31 (before entry) and next on 2025-01-30
 (after the 2025-01-03 exit; Compustat).
 **Outcome.** The position was held for its full 38-session limit (57 calendar days) and exited at the 2025-01-03 open: V +2.2%,

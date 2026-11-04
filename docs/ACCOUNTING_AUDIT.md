@@ -1,9 +1,9 @@
 # Independent accounting audit and data verification
 
-**Two different things are verified, and only the first is complete.**
+**Two different things are verified: the first is complete; the second is consistency checking with the limits in section 4.**
 1. *Internal arithmetic* (done): the engine's ledger agrees with separately written code reading the same CRSP extract.
-2. *Source data* (partly done, and partly pending your WRDS pulls): whether the CRSP fields mean what the code assumes and
-   whether inferred distributions match independent distribution records.
+2. *Source data* (consistency checks done; limits in section 4): whether the CRSP fields behave as the code assumes and
+   whether inferred distributions match CRSP's distribution records.
 
 ## 1. Arithmetic verification (`diagnostics/trade_audit.py`)
 Does not import the engine or data helpers. Works in actual share counts and raw prices: actual shares = adjusted shares /
@@ -32,16 +32,22 @@ between observations are at most a holiday weekend; `cfacpr` changes only on the
 V 4-for-1 on 2015-03-19); adjusted overnight gaps above 10% fall on known market dates (2008-10-24, 2015-08-24, 2020-03-16,
 2020-11-09). No negative (bid/ask-average) prices appear in the extract.
 
-## 3. What is not yet verified
-- **Field definitions.** Official CIZ definitions (DlyOpen, DlyPrc, DlyRet, DlyRetx, DlyCumFacPr and the price flag) were not
-  retrievable from a source I could reach from this environment. The code assumes: `dlyopen` is the day's opening price;
-  `dlyprc` is the closing price (bid/ask average only when `dlyprcflg` says so); `dlyret` includes distributions and
-  `dlyretx` excludes them; `dlycumfacpr` divides raw prices into split-adjusted ones. The CIZ table also carries `dlyclose`,
-  `dlyorddivamt`, `dlynonorddivamt`, `dlyfacprc` and `dlyhigh/dlylow`, which `extract_aux.py` pulls so these assumptions can be
-  tested against the file itself; the database catalogue comments are pulled to `data/raw/field_definitions.csv` for review.
-- **Distributions.** Inferred amounts look right on inspection (e.g. V $0.105 per share in 2008, MA $0.15), but that is my
-  recollection, not a sourced check. `verify_data.py` compares them with the file's own distribution amounts, and
-  `crsp_distributions.csv` supplies CRSP distribution events; both need `extract_aux.py` to be run (pending).
-- **Opening prices.** Whether `dlyopen` is the exchange opening-auction print is not verified. After the pull the script checks
-  that each open lies inside the day's [low, high], which is a range check, not a source comparison.
+## 3. Source-data verification (run 2026-11-03 after `extract_aux.py`; `diagnostics/verify_data.py`)
+Passed: no duplicate or non-increasing dates; prices and opens positive and non-missing; return fields missing only on each
+security's first listing day; V and MA share identical dates from the common start 2008-03-19 (53 earlier unpaired dates);
+largest calendar gap 5 days (holiday weekends). `dlyprc` equals the CIZ `dlyclose` field on 100% of 9,005 rows and
+`dlyprcflg` is `TR` (trade-based) on every row, so no bid/ask-average prices enter. Every open lies inside the day's
+[low, high]. Distributions inferred from `(dlyret - dlyretx) x prior raw close` fall on the same 142 event days as CRSP's
+own distribution-event table (`crsp.stkdistributions`, 147 ordinary cash dividends plus 2 split events) and agree
+within 1 cent per share (maximum difference $0.00034, median $0.00005). The split events in that table (MA 2014-01-22,
+V 2015-03-19) carry factors consistent with `dlycumfacpr` of 10 and 4.
+
+## 4. What is still not verified
+- **Field definitions.** The WRDS catalogue comments (`field_definitions.csv`) are short labels only ("Daily Open", "Daily
+  Price Return", "Daily Cumulative Factor to Adjust Price"). They do not say whether the open is the exchange auction print
+  or the first trade, so that meaning rests on CRSP documentation I did not obtain; the checks above test consistency, not that.
+- **Opens are not independently sourced.** The range check cannot detect an open that is consistently different from the
+  official auction price.
+- **Distributions were compared with CRSP's own event table, not with company disclosures.** That tests the return-based
+  inference, not CRSP. A check against Visa's and Mastercard's announced dividends has not been done.
 - **Both implementations read the same CRSP extract**, so neither can catch an error in that extract.

@@ -6,15 +6,15 @@ they are using the same extraction.
 
 Notes and limits:
 - The first CRSP extraction wrote no extraction log. Its file time (2026-11-03 20:33 UTC) and SHA-256 were recorded afterwards;
-  `data/raw/wrds_manifest.json` holds the query parameters it did save. The new `extract_aux.py` writes `extraction_log.json`
-  (queries, row counts, date ranges, field definitions); it has not yet been run, so the checks marked "not present" below are
-  pending, not passed.
+  `data/raw/wrds_manifest.json` holds the query parameters it did save. `extract_aux.py` was run later the same evening and
+  wrote `extraction_log.json` (queries, row counts, date ranges, checksums; PERMNO V 92611, MA 91233; Compustat gvkey MA 160225,
+  V 179534). Its legacy distributions query failed on a missing column and the `crsp.stkdistributions` query succeeded (149 rows).
 - The original evaluations ran in the author's environment (pandas 2.2.3). The reproductions in `public_results/` ran with
   the versions listed here (Python 3.10.12, pandas 2.3.3); trade keys matched and the numerical differences are in `CORRECTIONS.md`.
 - Security identifiers: CRSP PERMNO for Visa (V) and Mastercard (MA) as stored in `crsp_daily.csv`; CRSP table `crsp.dsf_v2`.
 
 ## Code version
-- git commit: `3cbaa61b8d760cf67e0a819e94df7aebe6bd33cb`; working tree clean
+- git commit: `b2f71f38633ac20baaa8254507d676f25ad53d60`; the commit after it changes documentation only; code files are identical to this commit
 - Python 3.10.12 on Linux; numpy 2.2.6, pandas 2.3.3, scipy 1.15.3, statsmodels 0.15.0, matplotlib 3.10.9, pytest 9.2.0
 
 ## Input files (SHA-256; sizes in bytes). The files themselves are licensed and are not in the repository
@@ -22,11 +22,24 @@ Notes and limits:
 - `data/raw/mkt_raw.csv`: 5782bb5270872e1f8b9f9a54aef478de85c76dec2e0a5ebcb40834d4e7abf47e (86,988 bytes, last modified (UTC) 2026-11-03T20:33+00:00)
 - `data/processed/market.csv`: d27a22d036689d61aa372ef7073c6875032783ca35e32d840c7cb62ac3c036b0 (290,032 bytes, last modified (UTC) 2026-11-03T20:34+00:00)
 - `data/processed/mkt.csv`: 5782bb5270872e1f8b9f9a54aef478de85c76dec2e0a5ebcb40834d4e7abf47e (86,988 bytes, last modified (UTC) 2026-11-03T20:34+00:00)
-- `data/raw/rf.csv`: abb2a5dff02facf5973d773d9e9599a61ee36d9eea2ba7548badd2d2f93af5c8 (110,773 bytes, last modified (UTC) 2026-11-03T21:01+00:00)
-- `data/raw/earnings.csv`: b3f0abd4c508af0ffd0f8cf1e609be27d60b0463c575efdddb19f6fed84f41b9 (6,034 bytes, last modified (UTC) 2026-11-03T21:01+00:00)
-- `data/raw/crsp_checks.csv`: not present
-- `data/raw/crsp_distributions.csv`: not present
+- `data/raw/rf.csv`: abb2a5dff02facf5973d773d9e9599a61ee36d9eea2ba7548badd2d2f93af5c8 (110,773 bytes, last modified (UTC) 2026-11-04T01:46+00:00)
+- `data/raw/earnings.csv`: 5a61d081f7f5a3495a044ad7e43a6e08d328adfb9a43b23ff78dffcb9da48d1b (11,517 bytes, last modified (UTC) 2026-11-04T01:46+00:00)
+- `data/raw/crsp_checks.csv`: 9e577b217bb02924037e06fa6077fce75650fc39da327924251180ccd8ad5fca (1,030,629 bytes, last modified (UTC) 2026-11-04T01:46+00:00)
+- `data/raw/crsp_distributions.csv`: 648d550de037881e30be3dfa4cff925dd7b94fa38300d71bad5ce6b6a0c48d1e (14,371 bytes, last modified (UTC) 2026-11-04T01:46+00:00)
 - `data/raw/wrds_manifest.json`: ddab75e6e4014f6ba326f96c7679ded78ba926aebb71fba87817d87535ca42f9 (3,410 bytes, last modified (UTC) 2026-11-03T20:26+00:00)
+
+## Auxiliary extraction (extract_aux.py), run 2026-11-04T01:45:42+00:00 UTC; permnos {'V': 92611, 'MA': 91233}
+- rf: 4716 rows, 2008-01-02 00:00:00 to 2026-09-30 00:00:00, sha256 abb2a5dff02facf5973d773d9e9599a61ee36d9eea2ba7548badd2d2f93af5c8
+  query: `select date, rf, mktrf from ff.factors_daily where date >= '2008-01-01' order by date`
+- compustat_fundq: 156 rows, 2007-08-01 00:00:00 to 2026-10-29 00:00:00, sha256 5a61d081f7f5a3495a044ad7e43a6e08d328adfb9a43b23ff78dffcb9da48d1b
+  query: `select gvkey, datadate, fyearq, fqtr, rdq, saleq, oiadpq, niq, epspxq, epsfxq, ajexq from comp.fundq where gvkey in ('160225','179534') and indfmt='INDL' and datafmt='STD' and consol='C' and popsrc='D' and datadate >= '2007-06-30' order by gvkey, datadate`
+- crsp_checks: 9005 rows, 2008-01-02 00:00:00 to 2025-12-31 00:00:00, sha256 9e577b217bb02924037e06fa6077fce75650fc39da327924251180ccd8ad5fca
+  query: `select permno, dlycaldt, dlyprc, dlyprcflg, dlyclose, dlyopen, dlyhigh, dlylow, dlybid, dlyask, dlyvol, dlyret, dlyretx, dlyorddivamt, dlynonorddivamt, dlyfacprc, dlycumfacpr, dlydistretflg from crsp.dsf_v2 where permno in (92611,91233) and dlycaldt >= '2008-01-01' order by permno, dlycaldt`
+- crsp_distributions: FAILED ((psycopg2.errors.UndefinedColumn) column "declardt" does not exist)
+- crsp_distributions_ciz: 149 rows, 2006-10-05 to 2025-11-12, sha256 648d550de037881e30be3dfa4cff925dd7b94fa38300d71bad5ce6b6a0c48d1e
+  query: `select * from crsp.stkdistributions where permno in (92611,91233)`
+- field_definitions: 70 rows, None to None, sha256 100a63fb578ce1287232fd8d663040dcd5115453934b1e1b9229e2297531d5df
+  query: `select c.relname as table_name, a.attname as column_name, d.description from pg_attribute a join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace left join pg_description d on d.objoid = c.oid and d.objsubid = a.attnum where n.nspname = 'crsp' and c.relname in ('dsf_v2', 'dsf') and a.attnum > 0 order by c.relname, a.attnum`
 
 ## WRDS schema check (extract_wrds.py --check)
 - crsp.dsf_v2 coverage probe (Apple, permno 14593, used only to see how far the table reaches): [{'a': '1980-12-12', 'b': '2025-12-31', 'n': '11355'}]

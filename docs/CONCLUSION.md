@@ -16,9 +16,10 @@ includes zero).
 
 **3. What remains uncertain.** Whether any edge exists: the intervals include zero outside the design period. Whether
 open-auction fills at full size were achievable in March 2020. Actual borrow, rebate and cash terms. Whether the selection of V
-and MA was influenced by hindsight (it was chosen as an obvious pair, which is a form of selection). Source-data
-verification of CRSP opens and distributions beyond the checks in `ACCOUNTING_AUDIT.md`. Valuation at entry for the case
-studies, which needs the Compustat pull listed there.
+and MA was influenced by hindsight (it was chosen as an obvious pair, which is a form of selection). Whether CRSP
+opens are the official auction prints (consistency checks pass; that meaning is unverified) and whether dividends match
+company disclosures (checked only against CRSP's own distribution table; see `ACCOUNTING_AUDIT.md`). Trailing P/E in the
+case studies is a crude lens, distorted for Mastercard by one 2017 quarter.
 
 **4. What evidence would justify allocating capital.** Forward, pre-registered evaluation on data after 2025-12-31 (or live
 paper trading with timestamped fills) over enough trades for an interval that excludes cash-plus-costs, on realistic financing
