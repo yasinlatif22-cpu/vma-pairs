@@ -20,9 +20,25 @@ execution timing, costs, borrow and dividends?
 **Important limitations.** One pair and about six trades per year; V and MA chosen with hindsight; execution at the opening
 print with no impact model; assumed costs and borrow; every 2009-2025 year has now been examined, so none is untouched.
 
-Figures (equity and drawdown, open-vs-close fills) are generated locally by `make_public_results.py` and are not published here
-until the data-licence terms for redistributing derived outputs have been checked. The tables in `docs/RESULTS.md` are the
-reported numbers.
+### Results at a glance
+Strategy-level results only (no security prices). All three are reproductions with the corrected engine; the holdout is spent.
+
+![Equity versus T-bills and drawdown](docs/img/equity_drawdown.png)
+*Total-equity return (cash earns nothing in the strategy's account) against T-bills on the same $1M. The strategy's lead comes
+from the 2009-17 development period, when T-bill rates were near zero (+35.8% vs 0.0%). In 2018-2025 (validation plus
+holdout) the strategy compounded +12.9% and T-bills +24.6%; financing assumptions that could narrow that gap are in
+`docs/RESULTS.md`. Periods are independent runs stitched for display.*
+
+![Execution sensitivity: open versus close fills](docs/img/execution_sensitivity.png)
+*Same trades, only the fill price differs. The validation-period advantage of opening fills comes mostly from three March 2020
+trades, and the sign is reversed in development. This sample does not establish a persistent opening-fill advantage.*
+
+![Trade P&L distribution, exits and concentration](docs/img/trade_pnl.png)
+*Many small target-exit wins and a fat left tail from time and stop exits. The three best trades matter: the holdout is
+negative without them.*
+
+An interactive version with prices, spread and case studies can be built locally (`make_dashboard.py`); it is not published
+because it embeds licensed price data.
 
 ## Where to read
 | document | content |
@@ -66,6 +82,7 @@ for r in "dev --gate none --fill open_next" "dev --gate coint --fill open_next" 
          "val --gate none --fill open_next" "val --gate coint --fill open_next" "val --gate none --fill close_next" \
          "holdout --gate none --fill open_next"; do python run_study.py --period $r --reproduce --out results_rerun; done
 pip install -r requirements-viz.txt && python make_dashboard.py results_rerun   # interactive HTML dashboard into dashboard/ (local only)
+python make_readme_figures.py results_rerun            # the three README figures into docs/img/ (strategy-level, no prices)
 python make_figures.py results_rerun                 # spread/z-score, case-study and trade-P&L figures into figures/ (local only)
 python make_public_results.py results_rerun            # tables, diagnostics output and figures into public_results/ (local only, git-ignored)
 python diagnostics/attribution.py results_rerun        # open-vs-close attribution (also: pooled_stats, concentration,
