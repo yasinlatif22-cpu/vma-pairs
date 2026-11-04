@@ -20,8 +20,9 @@ execution timing, costs, borrow and dividends?
 **Important limitations.** One pair and about six trades per year; V and MA chosen with hindsight; execution at the opening
 print with no impact model; assumed costs and borrow; every 2009-2025 year has now been examined, so none is untouched.
 
-![equity and drawdown](public_results/equity_drawdown.png)
-![execution sensitivity](public_results/fill_sensitivity.png)
+Figures (equity and drawdown, open-vs-close fills) are generated locally by `make_public_results.py` and are not published here
+until the data-licence terms for redistributing derived outputs have been checked. The tables in `docs/RESULTS.md` are the
+reported numbers.
 
 ## Where to read
 | document | content |
@@ -32,7 +33,6 @@ print with no impact model; assumed costs and borrow; every 2009-2025 year has n
 | [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | design, execution and accounting conventions, evaluation discipline |
 | [`docs/ACCOUNTING_AUDIT.md`](docs/ACCOUNTING_AUDIT.md), [`docs/PROVENANCE.md`](docs/PROVENANCE.md) | verification performed and its limits; code version and input checksums |
 | [`docs/CORRECTIONS.md`](docs/CORRECTIONS.md), [`EXPERIMENTS.md`](EXPERIMENTS.md) | corrections with numerical effects; append-only run log |
-| [`public_results/`](public_results) | aggregate tables, captured diagnostic output, figures (no data) |
 
 ## Design in one paragraph
 Each 63-session window fits a hedge ratio on the prior 252 sessions, then trades the spread on a 60-day z-score: enter at
@@ -65,7 +65,7 @@ not make it fresh):
 for r in "dev --gate none --fill open_next" "dev --gate coint --fill open_next" "dev --gate none --fill close_next" \
          "val --gate none --fill open_next" "val --gate coint --fill open_next" "val --gate none --fill close_next" \
          "holdout --gate none --fill open_next"; do python run_study.py --period $r --reproduce --out results_rerun; done
-python make_public_results.py results_rerun            # tables, diagnostics output and figures into public_results/
+python make_public_results.py results_rerun            # tables, diagnostics output and figures into public_results/ (local only, git-ignored)
 python diagnostics/attribution.py results_rerun        # open-vs-close attribution (also: pooled_stats, concentration,
 python diagnostics/trade_audit.py results_rerun        #  earnings_analysis, case_valuation, compare_runs, provenance)
 ```
@@ -76,7 +76,7 @@ they append to `EXPERIMENTS.md`, and the holdout is blocked by a lock file after
 `config.py` frozen specification and hash; `signals.py` hedge fit and signal state machine; `engine.py` ledger, fills, costs,
 borrow, dividends, risk limits; `metrics.py` statistics; `data_io.py`, `ingest.py`, `extract_wrds.py`, `extract_aux.py`
 data; `run_study.py` evaluations; `case_studies.py`; `diagnostics/` verification and analysis scripts (importable; run with
-a `main()` entry point); `tests/`; `docs/`; `public_results/`.
+a `main()` entry point); `tests/`; `docs/`.
 
 Licence note: CRSP, Compustat and Fama-French data are licensed through WRDS; this repository contains no such data and
 publishes only aggregate results derived from them.

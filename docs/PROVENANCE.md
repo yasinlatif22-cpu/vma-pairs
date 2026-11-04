@@ -9,7 +9,7 @@ Notes and limits:
   `data/raw/wrds_manifest.json` holds the query parameters it did save. `extract_aux.py` was run later the same evening and
   wrote `extraction_log.json` (queries, row counts, date ranges, checksums; PERMNO V 92611, MA 91233; Compustat gvkey MA 160225,
   V 179534). Its legacy distributions query failed on a missing column and the `crsp.stkdistributions` query succeeded (149 rows).
-- The original evaluations ran in the author's environment (pandas 2.2.3). The reproductions in `public_results/` ran with
+- The original evaluations ran in the author's environment (pandas 2.2.3). The reproductions (`results_rerun/`) ran with
   the versions listed here (Python 3.10.12, pandas 2.3.3); trade keys matched and the numerical differences are in `CORRECTIONS.md`.
 - Security identifiers: CRSP PERMNO for Visa (V) and Mastercard (MA) as stored in `crsp_daily.csv`; CRSP table `crsp.dsf_v2`.
 

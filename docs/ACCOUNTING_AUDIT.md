@@ -20,8 +20,8 @@ exists, the largest-|dividend| trade, the first window-boundary exit, and the en
 | largest |dividends| | 2014-04-08 | target | dividend-spanning long position |
 | window-boundary exit | 2010-09-13 | window_end | exit filled in the next window |
 | end-of-data liquidation | 2017-12-27 | end_of_data | final-close liquidation, no extra borrow night |
-Result: gross, dividends, costs, borrow and net match the engine to under $0.0001 in all six (output in
-`public_results/diagnostics_output.txt`). No trade spans V's 2015-03-19 split, so that split is checked only through the data
+Result: gross, dividends, costs, borrow and net match the engine to under $0.0001 in all six (reproduce with
+`python diagnostics/trade_audit.py results_rerun`). No trade spans V's 2015-03-19 split, so that split is checked only through the data
 checks below. Before the fix in `CORRECTIONS.md` item 1, the end-of-data trade disagreed by the one extra borrow night
 ($6.06); the audit is what exposes that class of error.
 
