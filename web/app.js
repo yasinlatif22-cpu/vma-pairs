@@ -721,13 +721,15 @@
 python -m pytest
 python reproduce.py            # completed evaluations, labelled reproductions (licensed data)
 python scenarios.py            # exploratory engine-rerun grid
-python build_site.py --mode local     # this app with your licensed files
-python build_site.py --mode public    # allow-listed public build</code></pre>`;
+python build_site.py --mode local --serve    # this app with your licensed files, opened in your browser
+python build_site.py --mode public --serve   # allow-listed public build</code></pre>`;
     } else body.innerHTML = C.md(docs[sel]);
     ev.querySelectorAll("[data-ev]").forEach((b) => b.addEventListener("click", () => openEvidence(b.dataset.ev === "__build" ? null : b.dataset.ev)));
     $("#evClose").addEventListener("click", closeDrawers);
     openDrawer(ev);
   }
 
+  const noapp = document.getElementById("noapp");
+  if (noapp) noapp.remove();                       // the app is running: drop the fallback notice
   initShell();
 })();

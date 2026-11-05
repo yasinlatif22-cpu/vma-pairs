@@ -39,7 +39,8 @@ trades, and the sign is reversed in development. This sample does not establish 
 negative without them.*
 
 ### Interactive research app
-`build_site.py` builds **V/MA - The Relative Value Desk**, a static app that opens in a browser with no server: an overview of the
+`build_site.py` builds **V/MA - The Relative Value Desk**, a static app; `python build_site.py --mode local --serve` opens it in
+your web browser (use this rather than double-clicking `index.html`, which macOS may open in a non-browser viewer): an overview of the
 evidence, a synchronized timeline of prices, spread, signals, fills, equity and drawdown, a session-by-session **trade replay**
 with a decision-time view that hides the outcome and later information, case-study research panels, and an assumption
 explorer backed by 504 engine reruns (with an optional 3D surface and a 2D equivalent). Every number comes from the Python
@@ -93,8 +94,8 @@ python diagnostics/trade_legs.py                       # leg-level attribution (
 python diagnostics/trade_audit.py                      #  case_valuation, verify_data, provenance)
 python make_readme_figures.py                          # the README figures (strategy-level, no prices)
 pip install -r requirements-viz.txt
-python build_site.py --mode local --docs               # research app with your licensed files -> build/local/index.html
-python build_site.py --mode public                     # allow-listed public build, checked by check_public_build.py
+python build_site.py --mode local --docs --serve       # build the research app from your licensed files and open it in your browser
+python build_site.py --mode public --serve             # allow-listed public build, checked by check_public_build.py, then opened
 node --test tests/web/core.test.js                     # frontend logic: decision-time information boundary
 node tests/web/browser_check.js build/local            # browser checks (needs Playwright)
 ```

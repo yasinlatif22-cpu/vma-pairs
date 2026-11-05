@@ -11,6 +11,4 @@ __pycache__/
 .DS_Store
 results*/
 public_results/
-figures/
-dashboard/
 build/
