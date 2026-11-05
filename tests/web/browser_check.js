@@ -34,6 +34,11 @@ const snap = async (p, name) => { if (shots) await p.screenshot({ path: path.joi
   console.log(`${D.meta.mode} build: ${dir}`);
   for (const t of ["overview", "timeline", "replay", "cases", "explorer"]) { await tab(p, t); await snap(p, `${D.meta.mode}_${t}.png`); }
   check(p.errors.length === 0, `no console errors on any tab (${p.errors.slice(0, 3).join(" | ")})`);
+  check((await p.$("#noapp")) === null, "the fallback notice is removed once the app runs");
+  const nojs = await browser.newContext({ javaScriptEnabled: false });
+  const pj = await nojs.newPage(); await pj.goto(url);
+  check((await pj.isVisible("#noapp")) && (await pj.textContent("#noapp")).includes("--serve"), "without JavaScript the page explains how to open it");
+  await nojs.close();
 
   // numbers shown equal the Python export
   await tab(p, "overview");
