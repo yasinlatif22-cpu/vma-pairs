@@ -11,10 +11,12 @@ Notes and limits:
   V 179534). Its legacy distributions query failed on a missing column and the `crsp.stkdistributions` query succeeded (149 rows).
 - The original evaluations ran in the author's environment (pandas 2.2.3). The reproductions (`results_rerun/`) ran with
   the versions listed here (Python 3.10.12, pandas 2.3.3); trade keys matched and the numerical differences are in `CORRECTIONS.md`.
+- Risk-free rate: `rf.csv` (Fama-French daily via WRDS) is rounded to 0.0001 a day; `extract_aux.py` now also pulls `rf_monthly.csv`, which the
+  financing and scenario scripts prefer. It has not been pulled yet, so excess-of-T-bill figures are provisional.
 - Security identifiers: CRSP PERMNO for Visa (V) and Mastercard (MA) as stored in `crsp_daily.csv`; CRSP table `crsp.dsf_v2`.
 
 ## Code version
-- git commit: `b2f71f38633ac20baaa8254507d676f25ad53d60`; the commit after it changes documentation only; code files are identical to this commit
+- git commit: `0c61cbbdb73087c3bdd8e23b608e9403b85ef03b`; working tree clean
 - Python 3.10.12 on Linux; numpy 2.2.6, pandas 2.3.3, scipy 1.15.3, statsmodels 0.15.0, matplotlib 3.10.9, pytest 9.2.0
 
 ## Input files (SHA-256; sizes in bytes). The files themselves are licensed and are not in the repository
