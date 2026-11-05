@@ -1,4 +1,6 @@
 """Convert data/raw/*.csv to the canonical files and print a data-quality report.  python ingest.py"""
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -9,6 +11,7 @@ def main():
     raw = pd.read_csv("data/raw/crsp_daily.csv", parse_dates=["date"])
     mkt = pd.read_csv("data/raw/mkt_raw.csv", parse_dates=["date"])
     out = from_crsp(raw)
+    Path("data/processed").mkdir(parents=True, exist_ok=True)
     out.to_csv("data/processed/market.csv", index=False)
     mkt[["date", "mkt_ret"]].to_csv("data/processed/mkt.csv", index=False)
 

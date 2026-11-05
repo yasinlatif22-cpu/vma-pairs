@@ -11,5 +11,10 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: frontend logic (decision-time information boundary)
+        run: node --test tests/web/core.test.js
       - name: synthetic end-to-end run (engine demo only; not evidence)
         run: python run_study.py --period synthetic

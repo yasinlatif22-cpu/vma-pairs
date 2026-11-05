@@ -9,6 +9,11 @@ Conventions (tested):
     exits at a window end: a position is flat after the first session of the next window, not at the window's last
     close. Borrow is charged for every night a short is held, including that one.
   * A missing price on a fill date raises ValueError; an order is never dropped silently.
+  * Inputs are validated before the run: identical date indexes for prices, distributions and signals, both securities
+    present, closes finite and positive, opens positive where present, distributions finite and non-negative.
+  * fill_lag (default 1, the frozen specification) is the number of sessions between the signal close and the fill. Values
+    above 1 exist only for exploratory execution-delay scenarios; an order is never created if it could not fill
+    before the final date, so nothing is left pending at the end.
   * At the final date any open position is liquidated at the final close with costs, and no borrow is charged for a
     night that does not occur. The final row is then flat (holdings, exposures, in_trade) and equity equals cash.
 """
@@ -16,11 +21,44 @@ import numpy as np
 import pandas as pd
 
 
-def run_engine(px_open, px_close, div, sig, spec):
+class InputError(ValueError):
+    pass
+
+
+def validate_inputs(px_open, px_close, div, sig, names):
+    """Raise InputError on misaligned or invalid inputs instead of producing a silently wrong ledger."""
+    idx = px_close.index
+    for label, f in (("open", px_open), ("distribution", div), ("signal", sig)):
+        if not f.index.equals(idx):
+            raise InputError(f"{label} index does not match the close-price index ({len(f)} vs {len(idx)} rows)")
+    if not idx.is_monotonic_increasing or idx.has_duplicates:
+        raise InputError("dates must be strictly increasing without duplicates")
+    for label, f in (("open", px_open), ("close", px_close), ("distribution", div)):
+        missing = [t for t in names if t not in f.columns]
+        if missing:
+            raise InputError(f"{label} frame lacks {missing}")
+    c = px_close[names].to_numpy(dtype=float)
+    if not np.isfinite(c).all() or (c <= 0).any():
+        raise InputError("close prices must be finite and positive on every date")
+    o = px_open[names].to_numpy(dtype=float)
+    if (~np.isnan(o) & ~(np.isfinite(o) & (o > 0))).any():
+        raise InputError("open prices must be positive where present (missing opens raise only if a fill needs one)")
+    dv = div[names].to_numpy(dtype=float)
+    if not np.isfinite(dv).all() or (dv < 0).any():
+        raise InputError("distributions must be finite and non-negative")
+    for col in ("target", "reason", "beta", "window"):
+        if col not in sig.columns:
+            raise InputError(f"signal frame lacks '{col}'")
+
+
+def run_engine(px_open, px_close, div, sig, spec, fill_lag=1):
     """px_*, div: DataFrames [date x (y, x)], div = cash per split-adjusted share on ex-date.
     sig: output of signals.build_signals restricted to the same dates.
     Returns (daily, trades)."""
     names = [spec.y, spec.x]
+    validate_inputs(px_open, px_close, div, sig, names)
+    if int(fill_lag) != fill_lag or fill_lag < 1:
+        raise InputError("fill_lag must be a whole number of sessions >= 1")
     dates = px_close.index
     n = len(dates)
     bps, borrow_rate = spec.cost_bps / 1e4, spec.borrow_bps / 1e4
@@ -67,7 +105,7 @@ def run_engine(px_open, px_close, div, sig, spec):
         cash += day_div
         if cur:
             cur["div"] += day_div
-        if pending:
+        if pending and i >= pending["due"]:
             p, pending = pending, None
             px = o if spec.fill == "open_next" else c
             if px.isna().any():
@@ -107,15 +145,16 @@ def run_engine(px_open, px_close, div, sig, spec):
         if halted_until < 0 and equity / peak - 1 <= -spec.dd_halt:
             halted_until, exit_reason = i + spec.halt_days, exit_reason or "dd_halt"
         # orders for the next execution
-        if i < n - 1:
+        if i + fill_lag <= n - 1:
+            due = i + fill_lag
             if cur and not pending:
                 if exit_reason:
-                    pending = dict(kind="exit", reason=exit_reason, sig_date=d)
+                    pending = dict(kind="exit", reason=exit_reason, sig_date=d, due=due)
                 elif s["target"] == 0:
-                    pending = dict(kind="exit", reason=s["reason"] or "signal", sig_date=d)
+                    pending = dict(kind="exit", reason=s["reason"] or "signal", sig_date=d, due=due)
             elif (not cur and not pending and s["target"] != 0 and prev_target == 0
                   and halted_until < 0 and s["window"] != locked_window):
-                pending = dict(kind="entry", side=int(s["target"]), beta=s["beta"], sig_date=d)
+                pending = dict(kind="entry", side=int(s["target"]), beta=s["beta"], sig_date=d, due=due)
         prev_target = s["target"]
 
     if cur:                                                          # mark-out at the final close
@@ -135,8 +174,15 @@ class ReconciliationError(AssertionError):
 
 def reconcile(daily, trades, spec, tol=0.01):
     """Trade-level net P&L must equal the change in portfolio equity (no cash interest is modelled).
-    Returns the difference in dollars; raises ReconciliationError if it exceeds `tol` dollars (float noise is ~1e-8)."""
+    Returns the difference in dollars; raises ReconciliationError if it exceeds `tol` dollars (float noise is ~1e-8)
+    or if any equity, cash-flow or trade value is not finite (NaN or infinite never passes)."""
+    cols = [c for c in ("equity", "long_mv", "short_mv", "borrow", "div") if c in daily.columns]
+    if not len(daily) or not np.isfinite(daily[cols].to_numpy(dtype=float)).all():
+        raise ReconciliationError("non-finite or missing values in the daily ledger")
+    tcols = [c for c in ("gross_pnl", "dividends", "costs", "borrow", "net_pnl") if c in trades.columns]
+    if len(trades) and not np.isfinite(trades[tcols].to_numpy(dtype=float)).all():
+        raise ReconciliationError("non-finite values in the trade ledger")
     err = float(daily.equity.iloc[-1] - spec.initial_equity - (trades.net_pnl.sum() if len(trades) else 0.0))
-    if abs(err) > tol:
+    if not np.isfinite(err) or abs(err) > tol:
         raise ReconciliationError(f"trade P&L does not reconcile to equity: difference {err:,.4f} (tolerance {tol})")
     return err

@@ -36,7 +36,7 @@ class Spec:
     # execution
     fill: str = "open_next"       # signal at close t, fill at open t+1 | 'close_next': fill at close t+1
     gross_frac: float = 1.0       # gross notional at entry as a fraction of last-close equity
-    # sizing: notional(X) / notional(Y) = beta (cointegration/log-spread hedge). NOT dollar-neutral
+    # sizing: notional(X) / notional(Y) = beta (OLS log-price hedge; cointegration is not established). NOT dollar-neutral
     # unless beta == 1 and NOT market-beta-neutral; both exposures are reported daily.
 
     # frictions (ASSUMPTIONS, see docs/METHODOLOGY.md)

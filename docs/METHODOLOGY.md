@@ -2,8 +2,10 @@
 
 ## Portfolio construction
 Three different "neutralities" exist and cannot all hold at once:
-- **Cointegration (log-spread) hedge**: notional(X) / notional(Y) = beta. This matches the signal, so a spread
-  move is what the position earns. Chosen as primary.
+- **OLS log-price hedge**: notional(X) / notional(Y) = beta, the slope of an OLS regression of log V on log MA over the
+  formation window. This matches the signal, so a spread move is what the position earns. Chosen as primary. Cointegration
+  is not established: most formation windows show no Engle-Granger evidence, so the fit is a hedge ratio, not a
+  cointegrating relation.
 - **Dollar neutral**: equal notionals. Matches the signal only if beta = 1.
 - **Market-beta neutral**: needs the two stocks' market betas to offset. Not enforced; V and MA betas are similar,
   so net market exposure should be small, but it is measured, not assumed.
@@ -50,8 +52,30 @@ discrepancy fails rather than printing a number.
 | prices (open, close), splits, ex-date cash distributions | **observed** (CRSP; distribution derived as (ret - retx) x prior adjusted close) |
 | trading cost 5 bps per leg per trade | **assumption** (spread + fees + small impact for mega caps) |
 | borrow 30 bps annualised, charged per night on short market value | **assumption** (V and MA are general collateral; your broker's rate may differ) |
-| interest on cash / short proceeds | **assumption: zero**. Not automatically conservative: it understates return on idle cash but means returns are not excess-of-rf. Scenarios and excess returns are in `RESULTS.md` |
+| interest on cash / short proceeds | **assumption: zero** in the engine. Not automatically conservative: it understates income on free cash but means returns are not excess-of-rf. Financing is analysed separately (below) |
 | fills exactly at the open or close print, full size | **assumption** (no impact model) |
+
+## Performance measures
+- **Mean annual return** = mean daily return x 252 (what the Sharpe ratio uses); **CAGR** = compound annual growth of equity.
+  Both are reported; they differ when returns vary.
+- **Drawdown** uses a running peak that starts at the initial capital, so a loss on the first day counts (`metrics.drawdown`).
+- **Sharpe** is on total-equity daily returns (cash earning nothing), never on invested days only. Excess-of-T-bill Sharpe is
+  reported separately under the financing scenarios.
+
+## Financing (fixed-holdings attribution; `diagnostics/financing.py`)
+The engine's holdings, trades, costs, borrow fees and dividends are kept exactly as run. Financing accrues to a separate cash
+balance F that is never used to resize positions. Daily return = (change in engine equity + financing accrued) / (engine
+equity + F) at the previous close, one denominator for every component.
+- Longs are bought with the account's own cash (no margin loan). Short-sale proceeds stay in the account as collateral held
+  for the lender (restricted); they earn a rebate only in S2.
+- Posted margin: 50% of short value of the account's own cash (Regulation T initial margin; total collateral 150%), earning nothing.
+- Free cash = equity + F - long value - 0.5 x short value earns the risk-free rate in S1 and S2; a negative balance would be a
+  debit charged rf + 0.5% (it does not occur in these runs).
+- S0 as run; S1 interest on free cash; S2 adds a rebate of rf - 0.5% on short proceeds. Borrow fees are already in the trading
+  P&L and are not charged twice. The benchmark is $1M in T-bills over the same dates.
+- Risk-free rate: Fama-French monthly rf spread over each month's trading days when `data/raw/rf_monthly.csv` exists; otherwise
+  the daily series stored on WRDS, which is rounded to 0.0001 a day (it can only show 0%, 2.52% or 5.04% a year) and makes the
+  excess-of-T-bill figures approximate. The printed output names the source used.
 
 ## Data conventions
 Split-adjusted, not dividend-adjusted, prices; dividends are explicit cash flows. Dates where either name lacks a
@@ -61,7 +85,8 @@ here; it would be required for a broader universe.
 
 ## Evaluation discipline
 - Periods: dev 2009-2017 (design checks), validation 2018-2022 (one look per pre-declared variant), holdout
-  2023-Oct 2026 (once, guarded by the spec hash and a lock file).
+  2023-2025 (once, guarded by the spec hash). Which period/variant combinations are spent is recorded in the committed
+  `evaluations.json`; `run_study.py` refuses to treat any of them as a fresh evaluation.
 - Pre-declared variants only: `gate=none` (primary) and `gate=coint`; `fill=open_next` and `close_next`.
 - Every run is appended to `EXPERIMENTS.md`. I froze the implementation before its first market-data evaluation
   (file modification times show the code predates the data pull and the first results), while acknowledging that the
@@ -71,13 +96,14 @@ here; it would be required for a broader universe.
   audit, case studies) were run after all evaluation periods were spent; they are classified in `EXPERIMENTS.md`.
 - Bootstrap: circular block bootstrap of the realised daily returns for several block lengths. It conditions on
   the realised path and does not repeat the research process.
-- Deflated Sharpe: P(true Sharpe > the best Sharpe expected from N zero-skill trials). N is the logged run count;
-  trials are correlated, so N overstates the independent count (a lenient adjustment). It is not the probability that
-  the strategy "works".
+- No deflated Sharpe ratio is reported. An earlier version computed one with the number of experiment-log rows as the trial
+  count, which mixed documentation and diagnostic rows with strategy trials; no defensible trial count exists for this study,
+  so the statistic was removed rather than replaced. Multiple testing is addressed by the log itself and by reporting every
+  variant that was run.
 - Volatility regimes: cut-offs are expanding quantiles of past market volatility, so labels use only past data.
 
 **Reproductions.** After an engine correction the evaluated periods were re-run into `results_rerun/` with
-`run_study.py --reproduce`. Reproductions are labelled as such in `EXPERIMENTS.md`, never overwrite the original results, and
+`python reproduce.py` (which calls `run_study.py --reproduce` for each entry in `evaluations.json`; no private lock file is needed). Reproductions are labelled as such in `EXPERIMENTS.md`, never overwrite the original results, and
 the holdout reproduction does not create a new holdout.
 
 ## Not implemented (deliberately, until the baseline is trusted)
@@ -89,3 +115,11 @@ labelled a full alternative strategy unless the hedge model and the signal defin
 ## Claims removed from the earlier scaffold
 "Dollar-neutral" (it was not), "roughly two false positives per window" (an unmeasured calculation), "probability the
 Sharpe is real", full-sample volatility tercile cut-offs, and synthetic control results presented as proof of no bias.
+
+## Exploratory scenario grid (`scenarios.py`; computed after every period was evaluated)
+504 full engine reruns: transaction cost {0, 2.5, 5, 7.5, 10, 15, 20} bps per leg per fill x borrow {0, 30, 100, 300} bps a year x
+fill timing {open or close of the session 1, 2 or 3 sessions after the signal close}, for each period. Because each cell reruns
+the engine, assumption changes flow through equity, sizing, the loss limit and the drawdown halt. The baseline cells reproduce
+the published runs and the declared next-close variant to the cent (the script fails otherwise). The grid is descriptive
+sensitivity; no cell was selected and none is a validated optimum. Fill lags above one session use the engine's `fill_lag`
+argument, which is not part of the frozen specification (its hash is unchanged).

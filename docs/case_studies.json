@@ -1,0 +1,83 @@
+{
+  "selection_rule": "Chosen by a rule fixed before reading any news: the largest validation loser, the largest validation winner and the worst holdout trade, by net P&L in the primary (next-open fill) run. The holdout trade is described after the holdout was spent, so it is a description, not a test.",
+  "valuation_label": "Historical valuation reconstruction using currently available Compustat data, filtered by report date.",
+  "valuation_limits": "Compustat holds today's values, which can include later revisions or restatements, and report dates carry no time of day, so only quarters reported strictly before the signal date are used. Where a figure was checked against the original earnings release, the release is cited. Trailing P/E is a crude lens for two businesses this similar; it describes, it does not value.",
+  "cases": [
+    {
+      "id": "2019-01-28",
+      "period": "val",
+      "depth": "deep",
+      "role": "Largest validation loser",
+      "thesis": "The rule bought Visa and sold Mastercard because the OLS log-price spread fell about two standard deviations below its 60-day mean. The economic argument for convergence is that both companies run card networks that earn fees on the same consumer and merchant payment flows, so a relative move of several points over a few days usually needs a company-specific cause. The statistical signal does not say whether such a cause exists.",
+      "decision_facts": [
+        {"date": "2018-10-24", "text": "Visa's latest results before the signal (fiscal 2018, quarter ended 30 Sep 2018): full-year GAAP EPS $4.42 and adjusted EPS $4.61; fiscal Q4 net revenue $5.4B, up 12%.", "source": {"title": "Visa fiscal Q4 2018 earnings release (Form 8-K)", "url": "https://www.sec.gov/Archives/edgar/data/0001403161/000140316118000052/fy18q4pressrelease10.htm"}},
+        {"date": "2018-10-30", "text": "Mastercard's latest results before the signal (Q3 2018): GAAP EPS $1.82 and adjusted EPS $1.78; nine-month 2018 GAAP EPS $4.73 and adjusted EPS $4.94.", "source": {"title": "Mastercard Q3 2018 earnings release (Form 8-K)", "url": "https://www.sec.gov/Archives/edgar/data/0001141391/000114139118000125/ma09302018-exx991xearnings.htm"}},
+        {"date": "2018-02-01", "text": "Mastercard's unusually low Q4 2017 GAAP EPS of $0.21 (net income $227M) included an $873M charge for the Tax Cuts and Jobs Act ($0.82 a share) and a $0.10-a-share charge for deconsolidating its Venezuelan subsidiaries; adjusted EPS was $1.14. That quarter sits inside Mastercard's trailing four quarters at the signal, so reported trailing EPS understates its earning power.", "source": {"title": "Mastercard Q4 2017 earnings release (Form 8-K, accession 0001141391-18-000005)", "url": "https://capedge.com/filing/1141391/0001141391-18-000005/MA-8K/file/2"}}
+      ],
+      "adjusted_ttm_eps": {"V": 4.61, "MA": 6.08, "note": "Company-adjusted (non-GAAP) EPS for the four quarters reported before the signal: Visa fiscal 2018 adjusted EPS $4.61; Mastercard Q4 2017 adjusted $1.14 plus nine-month 2018 adjusted $4.94 = $6.08. Both from the releases cited above."},
+      "valuation_reading": "On reported earnings Visa looked much cheaper than Mastercard; on the companies' own adjusted earnings most of that gap disappears, and Mastercard was growing faster at a lower operating margin. A slower grower trading at a modest discount is not, by itself, evidence of mispricing.",
+      "scheduled_events": "Both companies' next results fell inside the expected holding period (Visa 2019-01-30, Mastercard 2019-01-31; Compustat report dates). Whether those dates had been announced by 2019-01-28 was not verified; companies normally announce them in advance.",
+      "catalyst": "None identified. The entry was a statistical signal with no company-specific catalyst for convergence.",
+      "competing": "No sourced explanation was found for the 2019-01-28 move itself (both stocks fell that day; see the computed facts). Unexplained at decision time.",
+      "invalidating": "The thesis fails if the 2019-01-30/31 reports widen the growth gap in Mastercard's favour, for example a Mastercard quarter that beats while Visa signals slower growth, because then Visa's relative weakness is information rather than noise. Observable on the two report dates, before the planned exit. Separately, a report-day move that takes |z| to 4 hits the rule's own stop.",
+      "later": [
+        {"date": "2019-01-30", "text": "Visa reported fiscal Q1 2019: net revenue $5.5B (+13%) and EPS $1.30, outlook reaffirmed. The shares reversed during the call when the CFO described slowing growth in the U.S., U.K. and Brazil.", "sources": [{"title": "Visa fiscal Q1 2019 earnings release (Form 8-K)", "url": "https://www.sec.gov/Archives/edgar/data/1403161/000140316119000002/fy19q1pressrelease.htm"}, {"title": "Motley Fool, 31 Jan 2019", "url": "https://www.fool.com/investing/2019/01/31/visa-earnings-a-strong-quarter-but-there-could-be.aspx"}]},
+        {"date": "2019-01-31", "text": "Mastercard reported Q4 2018: EPS $1.55 against $1.53 expected, revenue $3.81B in line; the shares rose about 3% that day.", "sources": [{"title": "InvestorPlace, 31 Jan 2019", "url": "https://investorplace.com/2019/01/mastercard-earnings-boost-ma-stock/"}]},
+        {"date": "2019-01-31", "text": "The spread breached the 4-sigma stop at that close; the exit filled at the 2019-02-01 open.", "sources": []}
+      ],
+      "attribution_reading": "Most of the loss came from the Mastercard short, which rose into and after its report, rather than from Visa. The estimated market contribution is small because the two legs offset. The remainder is relative, company-specific movement around the two reports; the sources describe the reports but do not measure how much of the move each caused, so no causal split is claimed.",
+      "establishes": "The rule entered directly in front of both companies' reports with no view on them, and lost on a report-day relative move in the short leg.",
+      "does_not_establish": "That either report caused a measurable share of the move, or that skipping report dates would improve returns. A report-date filter remains an untested hypothesis that would need data not yet examined.",
+      "annotations": [
+        {"date": "2019-01-30", "kind": "earnings", "label": "Visa fiscal Q1 2019 results", "visibility": "on_date"},
+        {"date": "2019-01-31", "kind": "earnings", "label": "Mastercard Q4 2018 results", "visibility": "on_date"}
+      ]
+    },
+    {
+      "id": "2021-03-19",
+      "period": "val",
+      "depth": "standard",
+      "role": "Largest validation winner",
+      "thesis": "The rule bought Visa and sold Mastercard after a Visa-specific drop pushed the spread below its 60-day mean.",
+      "decision_facts": [
+        {"date": "2021-03-19", "text": "The Wall Street Journal reported that the Justice Department was examining whether Visa's debit practices amount to unlawful market dominance.", "source": {"title": "XTB summary of the Wall Street Journal report", "url": "https://www.xtb.com/int/market-analysis/news-and-research/us-justice-department-probing-visa-over-debit-card-practices"}}
+      ],
+      "scheduled_events": "No report dates fall in the window (Visa 2021-04-27, Mastercard 2021-04-29, both after the exit; Compustat).",
+      "valuation_reading": "Reconstruction only (not checked against releases): trailing multiples and growth were similar for the two companies and the P/E ratio was near its recent norm, so the drop did not rest on a valuation gap.",
+      "catalyst": "None. Convergence required the market to treat the probe as a distant risk.",
+      "competing": "The drop may have been information: an antitrust probe of Visa's debit business is a company-specific risk that need not revert.",
+      "invalidating": "The thesis fails if, before the exit, the probe escalates (a formal complaint or a quantified revenue impact) or Visa discloses changes to debit routing terms, because the discount would then reflect a lasting change.",
+      "later": [
+        {"date": "2024-09-24", "text": "The Justice Department sued Visa over debit practices, three years after the trade.", "sources": [{"title": "PYMNTS, 24 Sep 2024", "url": "https://pymnts.com/?p=2105079"}]}
+      ],
+      "attribution_reading": "The gain came mainly from the Visa long recovering; the Mastercard short lost less. Why Visa recovered within days is not established; one untested reading is that the probe was seen as long-dated with no near-term earnings effect.",
+      "establishes": "The rule profited from a news-driven dislocation that reverted within two weeks.",
+      "does_not_establish": "That the model separates noise from information. The signal day coincided with news that became a real lawsuit; the same rule would have lost had the market priced the probe in.",
+      "annotations": [
+        {"date": "2021-03-19", "kind": "news", "label": "Report of Justice Department probe into Visa debit practices", "visibility": "on_date"}
+      ]
+    },
+    {
+      "id": "2024-11-06",
+      "period": "holdout",
+      "depth": "standard",
+      "role": "Worst holdout trade",
+      "thesis": "The rule sold Visa and bought Mastercard after Visa outperformed on a day of broad market gains, pushing the spread above its 60-day mean.",
+      "decision_facts": [
+        {"date": "2024-09-24", "text": "The Justice Department's debit lawsuit against Visa had been public for six weeks.", "source": {"title": "PYMNTS, 24 Sep 2024", "url": "https://pymnts.com/?p=2105079"}}
+      ],
+      "scheduled_events": "Both companies had reported shortly before entry (2024-10-29 and 2024-10-31) and reported next on 2025-01-30, after the exit (Compustat).",
+      "valuation_reading": "Reconstruction only (not checked against releases): Visa traded at a lower trailing P/E than Mastercard with slightly slower growth and a higher margin, close to their recent relationship.",
+      "catalyst": "None identified.",
+      "competing": "None sourced. The move came on a broad market-rally day; no company-specific reason was found.",
+      "invalidating": "The thesis fails if the spread keeps drifting against the position without news for more than about two formation half-lives (roughly 25 sessions), because a slow re-rating is not the short-lived noise the rule assumes.",
+      "later": [
+        {"date": "2025-01-03", "text": "The position reached its time stop after the maximum holding period and was closed at the open.", "sources": []}
+      ],
+      "attribution_reading": "Unexplained. The loss accumulated as a drift rather than a jump, mostly on the Visa short, and no sourced explanation was found for the largest daily spread moves in the window.",
+      "establishes": "A slow drift without news is the failure mode a time stop only caps.",
+      "does_not_establish": "Any cause for the drift.",
+      "annotations": []
+    }
+  ]
+}

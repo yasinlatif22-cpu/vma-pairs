@@ -9,11 +9,12 @@ format (`dsf_v2`) is the one that reaches today, is what `--check` tells you.
 1. `pip install -r requirements.txt`
 2. `python extract_wrds.py --check` and enter your WRDS login when prompted (approve the Duo push). Credentials are
    never written anywhere by this code. It writes `data/raw/wrds_manifest.json` (table and column names, coverage probe,
-   no market data); paste its contents back so field names can be confirmed.
+   no market data); review it to confirm the field names and coverage before extracting.
 3. `python extract_wrds.py --format legacy` or `--format ciz`, whichever the check shows has all fields and coverage
    through the present. It prints permno candidates for each company; if there is not exactly one per ticker, re-run with
    `--permno V=<id> MA=<id>`.
-4. `python extract_aux.py` (also on your machine, same login) writes the risk-free series, Compustat report dates and
+4. `python extract_aux.py` (also on your machine, same login) writes the risk-free series (daily, monthly and Federal
+   Reserve bill yields; the monthly series is used for financing because the daily one is rounded), Compustat report dates and
    quarterly fundamentals, CIZ cross-check fields, CRSP distribution events and field comments, plus
    `data/raw/extraction_log.json` (UTC time, row counts, SHA-256 of each file, query text).
 5. `python ingest.py` prints the quality report. Read it: rows per ticker and start dates, dropped dates, missing opens,

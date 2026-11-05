@@ -6,20 +6,16 @@ Each run (dev, val, holdout) is an independent evaluation: capital resets to $1M
 252-day formation window may use pre-run data, and risk-control state (peak, halt, loss locks) restarts. Stitching only
 concatenates daily returns; it does not describe one continuous account.
 
-Return on total equity ($1M, cash earning nothing) is the principal measure. Financing is shown separately:
-  trading P&L  = gross price P&L + dividends - transaction costs - borrow fees   (what the engine books)
-  S1 interest  = rf on cash not needed to fund longs or collateralise shorts at 100% of short value
-  S2 rebate    = S1 plus a short-sale rebate of max(0, rf - REBATE_SPREAD) on short market value (illustrative; real rebates
-                 depend on the lender and the name, and not all proceeds are investable)
-  benchmark    = rf on the full $1M (a feasible cash alternative)"""
+Return on total equity ($1M, cash earning nothing) is the principal measure. Financing scenarios: diagnostics/financing.py."""
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from financing import DEBIT_SPREAD, MARGIN, REBATE_SPREAD, account, load_rf, tbill
+
 PERIODS = {"dev": "dev_none_open_next", "val": "val_none_open_next", "holdout": "holdout_none_open_next"}
-REBATE_SPREAD = 0.005      # annual; illustrative
 
 
 def sharpe(r):
@@ -47,15 +43,6 @@ def line(name, r):
           f"NW-t {nw_t(r):5.2f}  boot95(21d) [{lo:5.2f},{hi:5.2f}]")
 
 
-def financing(df, rf):
-    """daily $ interest under S1 and S2 for one run; positions and equity are those held overnight (prior close)."""
-    e, L, S = (df[c].shift(1).fillna(df.equity.iloc[0] if c == "equity" else 0.0) for c in ("equity", "long_mv", "short_mv"))
-    r = rf.reindex(df.index).ffill().fillna(0.0)
-    s1 = r * (e - L - S.abs()).clip(lower=0)
-    s2 = s1 + (r - REBATE_SPREAD / 252).clip(lower=0) * S.abs()
-    return s1, s2, r * df.equity.iloc[0]
-
-
 def main(res="results_rerun"):
     d = {k: pd.read_csv(f"{res}/{v}/daily.csv", parse_dates=["date"]).set_index("date") for k, v in PERIODS.items()}
     print("(stitched independent runs; capital, positions, formation and risk-control state reset per run)")
@@ -73,32 +60,32 @@ def main(res="results_rerun"):
     if not rf_path.exists():
         print("\n(data/raw/rf.csv not found: run extract_aux.py for the financing section)")
         return
-    rf = pd.read_csv(rf_path, parse_dates=["date"]).set_index("date").rf          # daily decimal
-    print(f"\nFINANCING (first four columns: $ per year as % of the initial $1M; excess columns: mean daily return based; rf = Fama-French daily rf; rebate spread {REBATE_SPREAD:.1%}):")
-    print(f"{'period':8s} {'trading':>8s} {'S1 int':>7s} {'S2 rebate':>9s} {'T-bill':>7s} | excess of T-bill: {'S0':>6s} {'S1':>6s} {'S2':>6s} | excess Sharpe S0/S1/S2")
+    rf, rf_label = load_rf()
+    print(f"\nrisk-free source: {rf_label}")
+    print(f"FINANCING: one account per run, holdings fixed as run (financing does not resize positions); margin {MARGIN:.0%} of short "
+          f"value, rebate rf-{REBATE_SPREAD:.1%}, debit rf+{DEBIT_SPREAD:.1%}. $ totals; returns use (E+F) as the daily denominator.")
+    print(f"{'period':8s} {'trading $':>11s} {'borrow $':>9s} {'interest $':>11s} {'rebate $':>9s} {'debit $':>8s} {'T-bill $':>10s} | "
+          f"CAGR S0 / S1 / S2 / T-bill | excess-of-rf mean ann. S0 / S1 / S2 | excess Sharpe S0 / S1 / S2")
     tr = {p: pd.read_csv(f"{res}/{v}/trades.csv") for p, v in PERIODS.items()}
+    ex_all = {n: {} for n in ("S0", "S1", "S2")}
     for k, x in d.items():
-        s1, s2, bench = financing(x, rf)
+        acc = {n: account(x, rf, n) for n in ("S0", "S1", "S2")}
+        assert abs(acc["S0"].trading_pnl.sum() - tr[k].net_pnl.sum()) < 0.01, "daily $ P&L must equal the sum of trade P&L"
+        tb = tbill(x.index, rf)
         yrs = len(x) / 252
-        trading = x.ret * x.equity.shift(1).fillna(1e6)                           # $ per day, equals trade P&L in total
-        assert abs(trading.sum() - tr[k].net_pnl.sum()) < 0.01, "daily $ P&L must equal the sum of trade P&L"
-        t_ann, s1_ann, s2_ann, b_ann = (v.sum() / 1e6 / yrs for v in (trading, s1, s2 - s1, bench))
-        ex = {n: x.ret - rf.reindex(x.index).ffill().fillna(0) + add / 1e6 for n, add in (("S0", 0 * s1), ("S1", s1), ("S2", s2))}
-        sh = [sharpe(ex[n]) for n in ("S0", "S1", "S2")]
-        print(f"{k:8s} {t_ann:8.2%} {s1_ann:7.2%} {s2_ann:9.2%} {b_ann:7.2%} | {'':18s}{ex['S0'].mean()*252:6.2%} {ex['S1'].mean()*252:6.2%} {ex['S2'].mean()*252:6.2%} | "
-              f"{sh[0]:5.2f} / {sh[1]:5.2f} / {sh[2]:5.2f}")
-    vh_ex = {}
-    for n in ("S0", "S1", "S2"):
-        parts = []
-        for k, x in d.items():
-            if k == "dev":
-                continue
-            s1, s2, _ = financing(x, rf)
-            add = {"S0": 0 * s1, "S1": s1, "S2": s2}[n]
-            parts.append(x.ret - rf.reindex(x.index).ffill().fillna(0) + add / 1e6)
-        vh_ex[n] = pd.concat(parts)
-    print("val+holdout excess of T-bill: " + "; ".join(f"{n} ann {v.mean()*252:.2%}, Sharpe {sharpe(v):.2f}" for n, v in vh_ex.items()))
-    print("\nThese financing lines are scenarios about a brokerage account, not trading results. Interest on cash does not by itself\n"
+        cagr = {n: (a.equity_fin.iloc[-1] / 1e6) ** (1 / yrs) - 1 for n, a in acc.items()}
+        cagr_tb = (tb.iloc[-1] / 1e6) ** (1 / yrs) - 1
+        for n, a in acc.items():
+            ex_all[n][k] = a.ret - a.rf
+        a1, a2 = acc["S1"], acc["S2"]
+        print(f"{k:8s} {a1.trading_pnl.sum():11,.0f} {tr[k].borrow.sum():9,.0f} {a1.interest.sum():11,.0f} {a2.rebate.sum():9,.0f} "
+              f"{a2.debit.sum():8,.0f} {tb.iloc[-1] - 1e6:10,.0f} | {cagr['S0']:.2%} / {cagr['S1']:.2%} / {cagr['S2']:.2%} / {cagr_tb:.2%} | "
+              + " / ".join(f"{ex_all[n][k].mean()*252:.2%}" for n in ("S0", "S1", "S2")) + " | "
+              + " / ".join(f"{sharpe(ex_all[n][k]):.2f}" for n in ("S0", "S1", "S2")))
+    print("val+holdout excess of rf (each run its own account): " + "; ".join(
+        f"{n} mean ann. {pd.concat([ex_all[n]['val'], ex_all[n]['holdout']]).mean()*252:.2%}, Sharpe {sharpe(pd.concat([ex_all[n]['val'], ex_all[n]['holdout']])):.2f}"
+        for n in ("S0", "S1", "S2")))
+    print("\nFinancing lines are scenarios about a brokerage account, not trading results. Interest on cash does not by itself\n"
           "establish or refute trading skill; the benchmark question is whether trading P&L plus feasible financing beats T-bills.")
 
 

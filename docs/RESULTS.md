@@ -1,10 +1,10 @@
-# Results (regenerated with the corrected engine, 2026-11-03)
+# Results (reproductions with the corrected engine; financing and earnings sections revised 2026-11-04)
 
 Pair: Visa (V) / Mastercard (MA). Data: CRSP daily (CIZ `dsf_v2`), 2008-2025; see `PROVENANCE.md`. Spec hash 26be1bbf6e29
 (variants change only the declared `gate` / `fill` fields). Figures are net of assumed costs (5 bps per leg per fill),
 borrow (30 bps/yr on short value) and dividends inferred from CRSP returns. Returns are on total equity ($1M) with cash
 earning nothing, so they are not excess of any risk-free rate. The strategy is in a trade on 26-39% of days.
-Every number can be regenerated locally with `make_public_results.py` (output in the git-ignored `public_results/`).
+Every number can be regenerated locally with `make_public_results.py`, `diagnostics/*.py` and `scenarios.py`; the interactive app (`build_site.py`) shows the same values.
 All runs here are **reproductions** after an engine correction (`CORRECTIONS.md`); the holdout was evaluated once, earlier,
 and this re-run does not make it fresh.
 
@@ -17,7 +17,7 @@ assumption, and three March 2020 trades carry most of that dependence. This is a
 evidence of a persistent edge.
 
 ## Runs
-| period | variant | trades | ann. return | vol | Sharpe | max DD | gross P&L $ | costs $ | net P&L $ |
+| period | variant | trades | mean ann. return | vol | Sharpe | max DD | gross P&L $ | costs $ | net P&L $ |
 |---|---|---|---|---|---|---|---|---|---|
 | dev | primary (fill at next open) | 58 | 3.58% | 5.98% | 0.60 | -8.4% | 444,735 | 73,494 | 357,560 |
 | dev | fill at next close | 58 | 3.76% | 5.97% | 0.63 | -6.8% | 467,826 | 73,583 | 380,399 |
@@ -35,7 +35,7 @@ Each run is an independent evaluation: capital resets to $1M, positions start an
 peak, halts, loss locks) restarts, and each window's 252-day formation can use pre-run data. Stitching concatenates daily
 returns; it is not one continuous account.
 
-| sample | days | ann. return | vol | Sharpe | Newey-West t | 95% block-bootstrap Sharpe (21d) |
+| sample | days | mean ann. return | vol | Sharpe | Newey-West t | 95% block-bootstrap Sharpe (21d) |
 |---|---|---|---|---|---|---|
 | dev 2009-17 | 2265 | 3.58% | 5.98% | 0.60 | 2.04 | [0.07, 1.11] |
 | val 2018-22 | 1259 | 1.78% | 3.82% | 0.47 | 1.07 | [-0.39, 1.31] |
@@ -76,23 +76,27 @@ Holdout profit disappears without its three best trades. Excluding the largest b
 is in the diagnostics output produced by `make_public_results.py`. The "all" interval includes the development period.
 
 ## Cash, financing and a feasible benchmark
-Total-equity return (cash earning nothing) is the principal measure. Separately: trading P&L (gross price P&L + dividends
-- costs - borrow fees, as booked), then scenarios for financing income, and a cash benchmark of the risk-free rate (Fama-French
-daily rf from WRDS) on the whole $1M. Mean annual rf: about 0.0% in 2009-17, 1.4% in 2018-22, 5.0% in 2023-25.
-Zero interest on cash is a modelling choice, not an automatically conservative one: it ignores income a real account would earn
-but also means the reported return must be compared with cash.
+Total-equity return (cash earning nothing) is the principal measure. CAGR (compound) is 3.46% / 1.72% / 1.22% by period against
+mean annual returns of 3.58% / 1.78% / 1.26%. Financing is a separate, fixed-holdings account (`METHODOLOGY.md`): holdings are
+exactly as run, interest accrues to cash and never resizes positions, and every daily return uses the same denominator.
 
-| period | trading P&L | S1 interest | S2 rebate | T-bill on $1M | excess of T-bill: S0 / S1 / S2 | excess Sharpe S0 / S1 / S2 |
-|---|---|---|---|---|---|---|
-| dev | 3.98%/yr | 0.00% | 0.00% | 0.00% | 3.58% / 3.58% / 3.58% | 0.60 / 0.60 / 0.60 |
-| val | 1.78%/yr | 1.04% | 0.16% | 1.39% | 0.39% / 1.43% / 1.59% | 0.10 / 0.37 / 0.42 |
-| holdout | 1.23%/yr | 3.17% | 0.98% | 5.04% | -3.78% / -0.61% / 0.37% | -1.21 / -0.20 / 0.12 |
-| val + holdout | | | | | -1.17% / +0.67% / +1.13% | -0.33 / 0.19 / 0.32 |
-First four columns are dollars per year as a share of the initial $1M; excess columns use mean daily returns. S0: as run. S1:
-rf on cash not needed to fund longs or to collateralise shorts at 100% of their value. S2: S1 plus a rebate of rf minus 50 bps
-(illustrative) on short market value; not all proceeds are investable and rebates vary by lender and name. Interest income
-does not establish or refute trading skill; these are scenarios about a brokerage account. The honest reading: as run, the
-strategy does not beat T-bills in 2018-2025, and whether it does depends on financing terms I cannot observe.
+**Provisional risk-free rate.** The figures below use the Fama-French daily rf as stored on WRDS, which is rounded to 0.0001 a day
+(0%, 2.52% or 5.04% a year). It shows 0% for 2009-2017 and 2021, and 5.04% for 2025, when bill yields actually fell. Re-running
+`extract_aux.py` adds the monthly series, and every script then switches to it automatically and says so. Expect the 2009-2017 excess
+returns to fall a little and the 2025 excess returns to rise.
+
+| period | trading P&L $ | borrow $ (inside trading) | S1 interest $ | S2 rebate $ | T-bills on $1M $ | CAGR S0 / S1 / S2 / T-bills | excess-of-rf Sharpe S0 / S1 / S2 |
+|---|---|---|---|---|---|---|---|
+| dev | 357,560 | 6,425 | 0 | 0 | 0 | 3.46% / 3.46% / 3.46% / 0.00% | 0.60 / 0.60 / 0.60 |
+| val | 88,874 | 2,076 | 58,224 | 7,870 | 71,754 | 1.72% / 2.78% / 2.93% / 1.40% | 0.10 / 0.39 / 0.43 |
+| holdout | 36,754 | 1,985 | 117,658 | 29,392 | 162,282 | 1.22% / 4.93% / 5.88% / 5.17% | -1.21 / -0.06 / 0.25 |
+| val + holdout | | | | | | | -0.33 / 0.24 / 0.37 (mean ann. excess -1.17% / +0.83% / +1.25%) |
+
+S0: as run. S1: rf on free cash after funding longs and posting 50% margin on the short (Regulation T). S2: S1 plus a rebate of rf
+minus 50 bps on short proceeds (illustrative; actual rebates depend on the lender and the name, and proceeds are not freely
+investable cash). No debit balance arose. Interest income does not establish or refute trading skill. As run, the strategy does
+not beat T-bills in 2018-2025; with free-cash interest it roughly matches them (S1 excess Sharpe 0.24, not distinguishable from
+zero), and whether it beats them depends on financing terms I cannot observe.
 
 ## Accounting verification
 Six complete trades were reconstructed with separate code from raw CRSP fields and match the ledger to the cent: long-V/
@@ -100,22 +104,43 @@ short-MA, short-V/long-MA, one spanning MA's 2014 split, the largest-dividend tr
 end-of-data liquidation (`ACCOUNTING_AUDIT.md`). Trade-level net P&L reconciles to portfolio equity in every run (the run
 fails otherwise). This is internal arithmetic verification; source-data verification status is in `ACCOUNTING_AUDIT.md`.
 
-## Earnings (post-hoc, exploratory; `PREREG_EARNINGS.md`)
-Compustat `rdq` dates (V 77, MA 78; one missing excluded). Window: report day and the next trading day for either company.
-| trades | n | mean net P&L | median | win rate | z-stop share |
+## Earnings (post-hoc, exploratory; `PREREG_EARNINGS.md`, revised)
+Compustat report dates (155; one missing excluded), 136 distinct release sessions. A trade is exposed if it is held across the
+overnight gap in which a release is priced; release times are not in the data, so three assumptions are shown. Outcomes are net
+P&L as a share of entry equity.
+
+| timing assumption | exposed n | mean | not exposed n | mean | difference, 95% bootstrap interval |
 |---|---|---|---|---|---|
-| no earnings day | 57 | +$7.6k | +$7.3k | 79% | 2% |
-| any earnings day | 50 | +$1.0k | +$5.2k | 58% | 8% |
-Difference in means -$6.6k, trade-bootstrap 95% interval [-$14.7k, +$1.1k] (includes zero). By period: -$8.2k (dev, 27 vs 31),
--$7.6k (val, 16 vs 16), +$0.5k (holdout, 7 vs 10). In-trade days: earnings-exposed -$956 (n=98, sd $9.1k) vs +$469 (n=1,318, sd
-$6.0k). A suggestive pattern in a small sample; no rule was added. "Avoid trades across report dates" is a new hypothesis that needs
-data not yet examined (after 2025-12-31) or paper trading; an old calendar year is not untouched.
+| every release before the open | 34 | +0.26% | 73 | +0.49% | -0.24% [-0.98%, +0.48%] |
+| every release after the close | 35 | +0.27% | 72 | +0.49% | -0.22% [-0.96%, +0.51%] |
+| either (primary) | 36 | +0.30% | 71 | +0.48% | -0.18% [-0.89%, +0.53%] |
+
+By period (either): dev -0.34% (22 vs 36), val -0.24% (11 vs 21), holdout +0.50% (3 vs 14). Longer trades span more releases
+(exposure 22% / 36% / 44% for short / medium / long holds), and within holding-length groups the sign is mixed. Position days
+that include a release gap (n=95, all exit days included) averaged -0.064% of equity against +0.036% on other position days (n=1,428),
+with higher dispersion (sd 0.87% vs 0.50%). The earlier version reported a larger trade-level difference (-$6.6k, interval
+[-$14.7k, +$1.1k]); most of it came from misclassified boundary trades and dropped exit days (`CORRECTIONS.md`). There is no
+reliable earnings pattern in this sample. No rule was added; "avoid report dates" stays an untested hypothesis.
+
+## Exploratory scenario grid (computed after all evaluations; `scenarios.py`)
+504 engine reruns over cost, borrow and fill timing. Total-equity Sharpe at 30 bps borrow:
+
+| sample | fill t+1 open (spec), cost 0 / 5 / 10 / 20 bps | at 5 bps: t+1 close / t+2 open / t+2 close / t+3 open / t+3 close |
+|---|---|---|
+| dev | 0.71 / 0.60 / 0.49 / 0.27 | 0.63 / 0.54 / 0.33 / 0.31 / 0.18 |
+| val | 0.63 / 0.47 / 0.30 / -0.04 | 0.09 / -0.02 / -0.13 / 0.02 / 0.03 |
+| holdout | 0.58 / 0.40 / 0.22 / -0.15 | 0.01 / 0.12 / 0.00 / -0.05 / 0.11 |
+| val + holdout | 0.61 / 0.44 / 0.27 / -0.07 | 0.07 / 0.03 / -0.09 / -0.00 / 0.05 |
+
+Borrow matters little (val + holdout Sharpe 0.46 / 0.44 / 0.41 / 0.32 at 0 / 30 / 100 / 300 bps). In 2018-2025 every fill timing
+other than the next open leaves a Sharpe near zero; in 2009-2017 the result survived later fills. The holdout close-fill cells are
+new information about a spent period, not a test. The grid shows how much the result depends on assumptions; it does not select one.
 
 ## What the evidence does and does not support
 - Supports: the engine's accounting is internally consistent and independently re-derivable; net market exposure is small
   (beta near zero); small positive average returns in each period, none significant on its own after the design period.
 - Does not support: a persistent edge; beating T-bills without a financing assumption; robustness to the opening-auction
-  assumption; that cointegration gating adds value (it only reduced trading); that the model separates information from noise.
+  assumption or to any later fill in 2018-2025; an earnings effect; that cointegration gating adds value (it only reduced trading); that the model separates information from noise.
 - Losing target exits exist (3 of 41 dev, 1 of 21 val, 3 of 11 holdout) because exits use a rolling z-score whose mean moves.
 - Payoff shape, validation: target exits 21 trades +$221k; z-stop 4 trades -$90k; max-hold 4 trades -$39k; window-end 3 trades -$3k.
 

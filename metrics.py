@@ -2,16 +2,27 @@
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from scipy import stats
+
+
+def drawdown(r):
+    """Drawdown path of a return series, with the initial capital (equity 1.0) included in the running peak,
+    so an immediate first-day loss counts as a drawdown."""
+    r = pd.Series(r).fillna(0.0)
+    eq = (1 + r).cumprod()
+    peak = np.maximum.accumulate(np.r_[1.0, eq.values])[1:]
+    return pd.Series(eq.values / peak - 1, index=r.index)
 
 
 def perf(r, periods=252):
+    """mean_ann_ret: arithmetic mean daily return x periods (what Sharpe uses). cagr: compound annual growth.
+    ann_ret is kept as an alias of mean_ann_ret for existing callers."""
     r = pd.Series(r).dropna()
     if len(r) < 2 or r.std() == 0:
-        return dict(ann_ret=np.nan, ann_vol=np.nan, sharpe=np.nan, max_dd=np.nan)
-    eq = (1 + r).cumprod()
-    return dict(ann_ret=r.mean() * periods, ann_vol=r.std() * np.sqrt(periods),
-                sharpe=r.mean() / r.std() * np.sqrt(periods), max_dd=float((eq / eq.cummax() - 1).min()))
+        return dict(ann_ret=np.nan, mean_ann_ret=np.nan, cagr=np.nan, ann_vol=np.nan, sharpe=np.nan, max_dd=np.nan)
+    m = r.mean() * periods
+    cagr = float((1 + r).prod() ** (periods / len(r)) - 1)
+    return dict(ann_ret=m, mean_ann_ret=m, cagr=cagr, ann_vol=r.std() * np.sqrt(periods),
+                sharpe=r.mean() / r.std() * np.sqrt(periods), max_dd=float(drawdown(r).min()))
 
 
 def market_regression(r, mkt, periods=252):
@@ -34,19 +45,6 @@ def bootstrap_sharpe(r, runs, blocks=(5, 10, 21, 42), seed=0, periods=252):
             sh[k] = s.mean() / s.std() * np.sqrt(periods) if s.std() > 0 else 0.0
         out[b] = tuple(np.percentile(sh, [2.5, 97.5]))
     return out
-
-
-def deflated_sharpe(r, n_trials):
-    """Bailey-Lopez de Prado. Returns P(true Sharpe > SR0) where SR0 is the expected best Sharpe among
-    n_trials zero-skill trials. Assumes independent trials (an upper bound on the true count dependence
-    penalty) and uses the realised skew/kurtosis. It is NOT the probability that the strategy 'works'."""
-    r = pd.Series(r).dropna()
-    T, sr = len(r), r.mean() / r.std()
-    g3, g4 = stats.skew(r), stats.kurtosis(r, fisher=False)
-    em = 0.5772156649
-    N = max(n_trials, 2)
-    sr0 = np.sqrt(1.0 / T) * ((1 - em) * stats.norm.ppf(1 - 1 / N) + em * stats.norm.ppf(1 - 1 / (N * np.e)))
-    return float(stats.norm.cdf((sr - sr0) * np.sqrt(T - 1) / np.sqrt(1 - g3 * sr + (g4 - 1) / 4 * sr ** 2)))
 
 
 def rolling_beta(close, mkt, window=252):

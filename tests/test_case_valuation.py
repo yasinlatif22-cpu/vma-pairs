@@ -12,8 +12,9 @@ def fq():
 
 def test_only_quarters_reported_by_the_date_are_used():
     f = fq()                                  # quarter ending 2019-12-31 is reported 2020-01-30
-    before = ttm_asof(f, pd.Timestamp("2020-01-29"))
-    after = ttm_asof(f, pd.Timestamp("2020-01-30"))
+    same_day = ttm_asof(f, pd.Timestamp("2020-01-30"))      # the release may come after that day's close: not yet known
+    after = ttm_asof(f, pd.Timestamp("2020-01-31"))
+    before = same_day
     assert before["last_quarter"] == pd.Timestamp("2019-09-30") and after["last_quarter"] == pd.Timestamp("2019-12-31")
 
 

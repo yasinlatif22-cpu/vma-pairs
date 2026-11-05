@@ -3,7 +3,9 @@
   python extract_aux.py            # writes git-ignored files under data/raw/ and data/raw/extraction_log.json
 
 wrds.Connection() prompts for credentials (nothing is stored here). The outputs are licensed data: do not commit them.
- rf.csv               date, rf, mktrf        Fama-French daily risk-free rate and market excess return (decimals)
+ rf.csv               date, rf, mktrf        Fama-French daily risk-free rate and market excess return (decimals; rf rounded to 1e-4)
+ rf_monthly.csv       date, rf               Fama-French monthly risk-free rate (decimal per month); preferred for financing
+ tbill_daily.csv      date, tb_*             Federal Reserve daily Treasury bill yields (percent, annualised); cross-check
  earnings.csv         ticker, gvkey, datadate, fyearq, fqtr, rdq, saleq, oiadpq, niq, epspxq, epsfxq, ajexq   Compustat quarterly
  crsp_checks.csv      CIZ daily file fields used to cross-check prices and distributions (flags, high/low, dividend amounts)
  crsp_distributions.csv   CRSP distribution events (independent of the return-based dividend inference)
@@ -45,6 +47,12 @@ def step(name, query, fname, date_cols=None, post=None):
 
 
 step("rf", "select date, rf, mktrf from ff.factors_daily where date >= '2008-01-01' order by date", "rf.csv", ["date"])
+# ff.factors_daily stores rf to 4 decimals (1 bp a day, about 2.5% a year), too coarse for financing. The monthly series has
+# 0.01%-a-month resolution and is spread over each month's trading days by diagnostics/financing.py. The Federal Reserve
+# 3-month bill yield is a cross-check only.
+step("rf_monthly", "select date, rf from ff.factors_monthly where date >= '2008-01-01' order by date", "rf_monthly.csv", ["date"])
+step("tbill_daily", "select * from frb.rates_daily where date >= '2008-01-01' order by date", "tbill_daily.csv", ["date"],
+     post=lambda t: t[["date"] + [c for c in t.columns if c.lower().startswith("tb_")]])
 
 co = db.raw_sql("select gvkey, conm from comp.company where strpos(upper(conm), 'VISA INC') = 1 or strpos(upper(conm), 'MASTERCARD') = 1")
 print(co)

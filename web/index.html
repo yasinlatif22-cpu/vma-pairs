@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V/MA Relative Value Desk</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>V/MA <span class="dash">&mdash;</span> The Relative Value Desk</h1>
+      <p class="sub">A walk-forward pairs study of Visa and Mastercard, 2009&ndash;2025</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <span id="modeBadge" class="badge"></span>
+    <button id="evidenceBtn" class="btn ghost" aria-controls="evidence" aria-expanded="false">Evidence &amp; methods</button>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="timeline" aria-selected="false">Timeline</button>
+    <button role="tab" data-tab="replay" aria-selected="false">Trade replay</button>
+    <button role="tab" data-tab="cases" aria-selected="false">Case studies</button>
+    <button role="tab" data-tab="explorer" aria-selected="false">Assumptions</button>
+  </nav>
+</header>
+<div id="publicBanner" class="banner" hidden></div>
+<main id="main">
+  <section id="tab-overview" class="tab" role="tabpanel" aria-label="Overview"></section>
+  <section id="tab-timeline" class="tab" role="tabpanel" aria-label="Timeline" hidden></section>
+  <section id="tab-replay" class="tab" role="tabpanel" aria-label="Trade replay" hidden></section>
+  <section id="tab-cases" class="tab" role="tabpanel" aria-label="Case studies" hidden></section>
+  <section id="tab-explorer" class="tab" role="tabpanel" aria-label="Assumptions" hidden></section>
+</main>
+<aside id="casePanel" class="drawer right" aria-label="Case research panel" hidden></aside>
+<aside id="evidence" class="drawer right wide" aria-label="Evidence and methods" hidden></aside>
+<div id="scrim" class="scrim" hidden></div>
+<div id="live" class="sr-only" aria-live="polite"></div>
+<footer class="foot">
+  <span id="footMeta"></span>
+</footer>
+<script src="plotly.min.js"></script>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

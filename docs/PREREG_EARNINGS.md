@@ -26,3 +26,13 @@ primary (open-fill) run. Small cells (n < 10) are reported but not interpreted.
 **Not done.** No threshold search, no alternative window lengths, no earnings-skip rule backtest. A finding that
 earnings days carry the losses would be a hypothesis ("skip entries/holds across report dates") to be tested only
 on data after 2025-12-31 or by paper trading.
+
+## Revision after the fourth review (2026-11-04)
+The definition above has two errors, found after it was run. (1) Daily analysis filtered on `in_trade`, which is 0 on the exit
+day, so the exit day's P&L (the gap into the exit fill) was dropped: 107 exit days, -$41.6k in total. (2) Counting the calendar
+days r and r+1 anywhere between the entry and exit dates misclassified boundary trades (for example a trade exited at the open
+of r is not exposed to a release after the close of r; a trade entered at the open of r is not exposed to a release before
+that open). `diagnostics/earnings_analysis.py` now defines exposure as holding a position across the overnight gap in which a
+release is priced, under three labelled timing assumptions, compares outcomes as a share of entry equity, and shows the
+comparison within holding-length groups. The original numbers are kept in `CORRECTIONS.md`. The analysis remains post hoc and
+exploratory, and no earnings rule was added to the strategy.

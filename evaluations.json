@@ -1,0 +1,13 @@
+{
+  "about": "Record of evaluations already performed on licensed CRSP data. Committed so that a fresh clone knows which periods are spent. A period/variant listed here can only be re-run with --reproduce, and those runs are labelled reproductions, never fresh evaluations. Results of the original runs are summarised in EXPERIMENTS.md and docs/CORRECTIONS.md.",
+  "code_version_note": "The original evaluations ran on 2026-11-03 from a working tree before the first commit (2b86276, 2026-11-03 16:06 -0500). The engine was corrected afterwards; see docs/CORRECTIONS.md. Reproductions record the commit they ran on.",
+  "evaluations": [
+    {"period": "dev", "gate": "none", "fill": "open_next", "spec_hash": "26be1bbf6e29", "date": "2026-11-03", "headline": "Sharpe 0.60, 58 trades"},
+    {"period": "dev", "gate": "coint", "fill": "open_next", "spec_hash": "a8e20fc3bc42", "date": "2026-11-03", "headline": "Sharpe 0.32, 11 trades"},
+    {"period": "dev", "gate": "none", "fill": "close_next", "spec_hash": "14657db813e2", "date": "2026-11-03", "headline": "Sharpe 0.63, 58 trades"},
+    {"period": "val", "gate": "none", "fill": "open_next", "spec_hash": "26be1bbf6e29", "date": "2026-11-03", "headline": "Sharpe 0.47, 32 trades"},
+    {"period": "val", "gate": "coint", "fill": "open_next", "spec_hash": "a8e20fc3bc42", "date": "2026-11-03", "headline": "Sharpe 0.19, 10 trades"},
+    {"period": "val", "gate": "none", "fill": "close_next", "spec_hash": "14657db813e2", "date": "2026-11-03", "headline": "Sharpe 0.09, 32 trades"},
+    {"period": "holdout", "gate": "none", "fill": "open_next", "spec_hash": "26be1bbf6e29", "date": "2026-11-03T15:37:58", "headline": "Sharpe 0.40, 17 trades"}
+  ]
+}

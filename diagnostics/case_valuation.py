@@ -1,9 +1,14 @@
-"""Point-in-time relative valuation at the signal date for selected trades (decision-time facts only).
+"""Historical valuation reconstruction using currently available Compustat data, filtered by report date.
+
+This is NOT a point-in-time (vintage) dataset: Compustat rows reflect the values held today, which can include later revisions or
+restatements, and the report date (rdq) has no time of day. To avoid counting a release that came after the signal close, only
+quarters reported strictly BEFORE the signal date are used. Figures quoted in the case studies are checked against the original
+earnings releases where noted (docs/CASE_STUDIES.md); otherwise they carry the reconstruction label.
 
   python diagnostics/case_valuation.py [results_dir]     (needs data/raw/earnings.csv from extract_aux.py, data/processed/market.csv)
 
-For each trade and company: trailing-four-quarter diluted EPS, sales and operating margin using ONLY quarters whose report
-date (rdq) is on or before the signal date; trailing P/E at the signal-date close; sales growth (TTM vs the prior TTM);
+For each trade and company: trailing-four-quarter diluted EPS (reported, i.e. GAAP as stored by Compustat), sales and operating
+margin using ONLY quarters whose report date (rdq) is before the signal date; trailing P/E at the signal-date close; sales growth (TTM vs the prior TTM);
 and where today's V/MA P/E ratio sits against that ratio over the prior three years (same point-in-time rule).
 EPS is divided by the Compustat adjustment factor (ajexq) so it is on the same split basis as the adjusted CRSP close.
 No analyst estimates are used (not pulled); this is trailing, not forward, valuation. Check the printed quarters against
@@ -15,8 +20,8 @@ import pandas as pd
 
 
 def ttm_asof(fq, t, back=0):
-    """Latest four quarters reported on or before t (skipping `back` quarters). fq: one company's quarterly rows."""
-    r = fq[fq.rdq <= t].sort_values("datadate")
+    """Latest four quarters reported strictly before t (skipping `back` quarters). fq: one company's quarterly rows."""
+    r = fq[fq.rdq < t].sort_values("datadate")
     r = r.iloc[: len(r) - back] if back else r
     q = r.tail(4)
     if len(q) < 4:
@@ -64,11 +69,11 @@ def main(res="results_rerun"):
             if np.isfinite(a) and np.isfinite(b):
                 hist.append(a / b)
         if len(hist) > 20:
-            print(f"  V/MA trailing P/E ratio {ratio:.2f}; prior-3-year (point-in-time, every 5th day, n={len(hist)}) median {np.median(hist):.2f}, "
+            print(f"  V/MA trailing P/E ratio {ratio:.2f}; prior-3-year (report-date filtered, every 5th day, n={len(hist)}) median {np.median(hist):.2f}, "
                   f"percentile {np.mean(np.array(hist) <= ratio):.0%}")
-        print("  quarters used (reported on/before signal date):")
+        print("  quarters used (reported before the signal date):")
         for tk in ("V", "MA"):
-            q = fq[tk][fq[tk].rdq <= t].sort_values("datadate").tail(4)
+            q = fq[tk][fq[tk].rdq < t].sort_values("datadate").tail(4)
             print("   ", tk, [(str(a.date()), round(float(b / c), 2), str(f.date())) for a, b, c, f in zip(q.datadate, q.epsfxq, q.ajexq, q.rdq)], "(quarter end, EPS/adj, reported)")
 
 

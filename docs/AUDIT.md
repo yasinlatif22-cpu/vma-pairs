@@ -15,6 +15,6 @@
 | 11 | Validation | **Confirmed, with an admission** | The old control runs were not a proof, and after the first control read +0.10 I ran more seeds until it looked reassuring: that is the seed-search the review warns about. v2 uses deterministic unit tests, and each was mutation-checked (see below). |
 
 ## Test verification actually performed
-29 tests pass (20 at this review, 9 added in the third review: see `CORRECTIONS.md`). Six deliberate bugs were planted one at a time to check the suite catches them: same-close fill,
+68 Python tests and 5 frontend logic tests pass (20 at this review, 9 added in the third review and 39 in the fourth: see `CORRECTIONS.md`). Six deliberate bugs were planted one at a time to check the suite catches them: same-close fill,
 no dividends, borrow on gross, no stop check at entry, off-by-one holding limit, and a hedge fit that sees the trade
 window. The first run missed the look-ahead mutation (weak test); the test was strengthened and then caught it.
