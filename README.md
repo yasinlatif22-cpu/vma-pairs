@@ -3,15 +3,28 @@
 **Question.** Does the log-price spread between Visa (V) and Mastercard (MA) mean-revert tradably out of sample, after
 execution timing, costs, borrow and dividends?
 
-**Principal findings** (CRSP daily data, 2009-2025; details and caveats in [`docs/RESULTS.md`](docs/RESULTS.md))
+**Verdict: inconclusive.** Tested on CRSP data, the Visa-Mastercard pairs trade shows a modest positive Sharpe, but the result is
+sensitive to execution timing and the study found no reliable edge. Final conclusion: [`docs/CONCLUSION.md`](docs/CONCLUSION.md).
+
+![Equity versus T-bills and drawdown: the strategy ends near $1.53M against about $1.25M for T-bills, with development 2009-17, validation 2018-22 and holdout 2023-25 marked](docs/img/equity_drawdown.png)
+*Total-equity return (cash earns nothing in the strategy's account) against T-bills on the same $1M, split into three
+independent runs stitched for display: **development 2009-2017**, **validation 2018-2022** and **holdout 2023-2025** (spent).
+The strategy's lead comes from the development period, when T-bill rates were near zero (+35.8% vs 0.0%). In 2018-2025
+(validation plus holdout) the strategy compounded +12.9% and T-bills +24.6%; financing assumptions that could narrow that gap
+are in `docs/RESULTS.md`.*
+
+**Execution timing caveat.** The result depends on the fill. At the next open the 2018-2025 Sharpe is 0.44; at the next close
+0.07, and at every later fill tested about zero (exploratory engine reruns). Three March 2020 trades account for $50.7k of the
+$75.6k validation gain from opening fills. This sample does not establish a persistent opening-fill advantage.
+
+### Detailed findings
+(CRSP daily data, 2009-2025; details and caveats in [`docs/RESULTS.md`](docs/RESULTS.md))
 - Net Sharpe 0.60 / 0.47 / 0.40 in development / validation / holdout, on total equity with cash earning nothing. Only the
   development period, which the design was checked on, is individually distinguishable from zero. For 2018-2025 the
   Sharpe is 0.44 (Newey-West t about 1.3).
 - Against T-bill rates the as-run return is below cash in 2018-2025 (excess Sharpe -0.33); with interest on free cash it
   roughly matches cash (+0.24). These use a provisional risk-free series (`docs/RESULTS.md`).
-- The result depends on execution. At the next open the 2018-2025 Sharpe is 0.44; at the next close 0.07, and at every later fill
-  tested about zero (exploratory engine reruns). Three March 2020 trades account for $50.7k of the $75.6k validation gain from
-  opening fills. This sample does not establish a persistent opening-fill advantage.
+- The result depends on execution; see the timing caveat above.
 - Without its three best trades the holdout loses money. Measured over actual holding intervals, trades spanning earnings
   releases did no reliably worse (post hoc, exploratory).
 - The accounting is internally consistent, independently re-derived for six complete trades and leg by leg for all 107, and
@@ -21,14 +34,8 @@ execution timing, costs, borrow and dividends?
 **Important limitations.** One pair and about six trades per year; V and MA chosen with hindsight; execution at the opening
 print with no impact model; assumed costs and borrow; every 2009-2025 year has now been examined, so none is untouched.
 
-### Results at a glance
+### More charts
 Strategy-level figures only; no security prices. All are reproductions with the corrected engine; the holdout is spent.
-
-![Equity versus T-bills and drawdown](docs/img/equity_drawdown.png)
-*Total-equity return (cash earns nothing in the strategy's account) against T-bills on the same $1M. The strategy's lead comes
-from the 2009-17 development period, when T-bill rates were near zero (+35.8% vs 0.0%). In 2018-2025 (validation plus
-holdout) the strategy compounded +12.9% and T-bills +24.6%; financing assumptions that could narrow that gap are in
-`docs/RESULTS.md`. Periods are independent runs stitched for display.*
 
 ![Execution sensitivity: open versus close fills](docs/img/execution_sensitivity.png)
 *Same trades, only the fill price differs. The validation-period advantage of opening fills comes mostly from three March 2020
@@ -39,6 +46,10 @@ trades, and the sign is reversed in development. This sample does not establish 
 negative without them.*
 
 ### Interactive research app
+![Screenshot of the V/MA research app's trade replay tab on clearly labelled synthetic data: rebased price lines, spread z-score, ledger and event log for a simulated long V / short MA trade.](docs/img/research-app-synthetic.png)
+*The app's trade-replay tab, shown on **synthetic data** (simulated prices, labelled SYNTHETIC in the app). It is not V or MA
+price data; licensed prices stay out of every public asset.*
+
 `build_site.py` builds **V/MA - The Relative Value Desk**, a static app; `python build_site.py --mode local --serve` opens it in
 your web browser (use this rather than double-clicking `index.html`, which macOS may open in a non-browser viewer): an overview of the
 evidence, a synchronized timeline of prices, spread, signals, fills, equity and drawdown, a session-by-session **trade replay**
